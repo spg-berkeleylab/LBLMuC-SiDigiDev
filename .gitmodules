@@ -1,0 +1,3 @@
+[submodule "packages/ACTSTuple"]
+	path = packages/ACTSTuple
+	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/ACTSTuple.git

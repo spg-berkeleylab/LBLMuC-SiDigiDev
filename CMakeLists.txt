@@ -1,0 +1,17 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15 FATAL_ERROR)
+
+PROJECT(LBLMuCWorkspace)
+
+INCLUDE("/opt/ilcsoft/v02-01-pre/ILCSoft.cmake")
+
+#
+# Find and add all packages
+FILE(GLOB packages RELATIVE ${CMAKE_CURRENT_LIST_DIR} packages/*)
+FOREACH(package ${packages})
+  IF(IS_DIRECTORY ${package})
+    MESSAGE("Add package ${package}")
+    ADD_SUBDIRECTORY(${package})
+  ENDIF()
+ENDFOREACH()
+
+#ADD_SUBDIRECTORY(packages/ACTSTuple)
