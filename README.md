@@ -4,6 +4,7 @@ Collection of packages for Muon Collider studies done at LBL.
 
 ## Repository Structure
 - `packages/` All non-standard packages linked using git submodules.
+- `sim/` Configuration files for generating events.
 
 ## Setup Instructions
 
