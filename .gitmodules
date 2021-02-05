@@ -1,3 +1,6 @@
 [submodule "packages/ACTSTuple"]
 	path = packages/ACTSTuple
 	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/ACTSTuple.git
+[submodule "packages/ACTSMCC"]
+	path = packages/ACTSMCC
+	url = ssh://git@gitlab.cern.ch:7999/berkeleylab/MuonCollider/ACTSMCC.git
