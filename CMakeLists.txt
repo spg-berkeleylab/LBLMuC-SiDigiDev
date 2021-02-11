@@ -5,6 +5,10 @@ PROJECT(LBLMuCWorkspace)
 INCLUDE("/opt/ilcsoft/muonc/ILCSoft.cmake")
 
 #
+# External packages
+ADD_SUBDIRECTORY(exts/lcgeo)
+
+#
 # Find and add all packages
 FILE(GLOB packages RELATIVE ${CMAKE_CURRENT_LIST_DIR} packages/*)
 FOREACH(package ${packages})
