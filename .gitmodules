@@ -3,4 +3,7 @@
 	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/ACTSTuple.git
 [submodule "packages/ACTSMCC"]
 	path = packages/ACTSMCC
-	url = ssh://git@gitlab.cern.ch:7999/berkeleylab/MuonCollider/ACTSMCC.git
+	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/ACTSMCC.git
+[submodule "exts/lcgeo"]
+	path = exts/lcgeo
+	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/lcgeo.git
