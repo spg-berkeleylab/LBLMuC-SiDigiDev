@@ -24,5 +24,5 @@ source /opt/ilcsoft/muonc/init_ilcsoft.sh
 
 #
 # Add exts
-LD_LIBRARY_PATH="$(find ${MYBUILD}/exts/*/lib -type d | tr '\n' ';')${LD_LIBRARY_PATH}"
-PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ';')${PATH}"
+LD_LIBRARY_PATH="$(find ${MYBUILD}/exts/*/lib -type d | tr '\n' ':')${LD_LIBRARY_PATH}"
+PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ':')${PATH}"
