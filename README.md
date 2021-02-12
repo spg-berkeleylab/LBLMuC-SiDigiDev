@@ -10,7 +10,7 @@ Collection of packages for Muon Collider studies done at LBL.
 ## Setup Instructions
 
 ### Container
-All commands should be run inside the `infnpd/mucoll-ilc-framework:1.0-centos8` container.
+All commands should be run inside the `infnpd/mucoll-ilc-framework:1.4-centos8` container.
 
 #### Singularity
 ```bash
@@ -18,7 +18,7 @@ singularity shell --cleanenv /cvmfs/unpacked.cern.ch/registry.hub.docker.com/inf
 ```
 
 ### Build Instructions
-Run the following commands from inside your `mucoll-ilc-framework:1.0-centos8` container. The same commands will also work with a local installation of the ILC software, with the exception of the first line.
+Run the following commands from inside your `mucoll-ilc-framework:1.4-centos8` container. The same commands will also work with a local installation of the ILC software, with the exception of the first line.
 ```bash
 source /opt/ilcsoft/muonc/init_ilcsoft.sh # Setup ILC software
 cmake -S . -B build
