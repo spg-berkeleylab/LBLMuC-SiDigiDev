@@ -16,7 +16,8 @@ if [ ! -d ${MYBUILD} ]; then
 fi
 
 # Convert to absolute path
-MYBUILD=$(realpath ${MYBUILD})
+export MYWORKSPACE=$(realpath $(dirname ${BASH_SOURCE[0]}))
+export MYBUILD=$(realpath ${MYBUILD})
 
 #
 # Main software
@@ -24,5 +25,5 @@ source /opt/ilcsoft/muonc/init_ilcsoft.sh
 
 #
 # Add exts
-LD_LIBRARY_PATH="$(find ${MYBUILD}/exts/*/lib -type d | tr '\n' ':')${LD_LIBRARY_PATH}"
-PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ':')${PATH}"
+export LD_LIBRARY_PATH="$(find ${MYBUILD}/exts/* -name lib64 -type d | tr '\n' ':')$(find ${MYBUILD}/exts/* -name lib -type d | tr '\n' ':')${LD_LIBRARY_PATH}"
+export PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ':')${PATH}"
