@@ -17,3 +17,6 @@ FOREACH(package ${packages})
     ADD_SUBDIRECTORY(${package})
   ENDIF()
 ENDFOREACH()
+
+# Data
+ADD_SUBDIRECTORY(data)
