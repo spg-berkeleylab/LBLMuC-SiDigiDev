@@ -51,8 +51,7 @@ ddsim --steeringFile ${MYBUILD}/data/sim_steer_muonGun_MuColl_v1_mod0.py
 
 ### Dump Events Into CSV Files
 ```bash
-MARLIN_DLL=${MYBUILD}/packages/ACTSTuple/libACTSTuple.so:${MARLIN_DLL} Marlin ${MYWORKSPACE}/pa  
-ckages/ACTSTuple/example/actstuple_steer.xml --global.LCIOInputFiles=/path/to/events.slcio
+MARLIN_DLL=${MYBUILD}/packages/ACTSTuple/libACTSTuple.so:${MARLIN_DLL} Marlin ${MYBUILD}/packages/ACTSTuple/example/actstuple_steer.xml --global.LCIOInputFiles=/path/to/events.slcio
 ```
 
 ## Modified Geometry Destription
