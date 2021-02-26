@@ -44,6 +44,11 @@ Run the following commands from your run directory. Make sure to replace `${MYBU
 ${MYBUILD}/packages/ACTSMCC/dd2tgeo ${MYWORKSPACE}/data/MuColl_v1_mod0/MuColl_v1_mod0.xml MuColl_v1_mod0.root
 ```
 
+### Event Simulation
+```bash
+ddsim --steeringFile ${MYBUILD}/data/sim_steer_muonGun_MuColl_v1_mod0.py
+```
+
 ### Dump Events Into CSV Files
 ```bash
 MARLIN_DLL=${MYBUILD}/packages/ACTSTuple/libACTSTuple.so:${MARLIN_DLL} Marlin ${MYWORKSPACE}/pa  
