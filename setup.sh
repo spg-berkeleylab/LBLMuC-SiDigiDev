@@ -27,3 +27,7 @@ source /opt/ilcsoft/muonc/init_ilcsoft.sh
 # Add exts
 export LD_LIBRARY_PATH="$(find ${MYBUILD}/exts/* -name lib64 -type d | tr '\n' ':')$(find ${MYBUILD}/exts/* -name lib -type d | tr '\n' ':')${LD_LIBRARY_PATH}"
 export PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ':')${PATH}"
+
+#
+# Add new modules
+export MARLIN_DLL="$(find ${MYBUILD}/packages -type f -name '*.so' | tr '\n' ':')${MARLIN_DLL}"
