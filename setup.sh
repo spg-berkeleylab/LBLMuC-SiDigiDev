@@ -28,16 +28,21 @@ source /opt/ilcsoft/muonc/init_ilcsoft.sh
 export LD_LIBRARY_PATH="$(find ${MYBUILD}/exts/* -name lib64 -type d | tr '\n' ':')$(find ${MYBUILD}/exts/* -name lib -type d | tr '\n' ':')${LD_LIBRARY_PATH}"
 export PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ':')${PATH}"
 
-# Modify MARLIN_DLL for packages
-for pkg in `ls -1 -d packages/* | tr '\n' '\0' | xargs -0 -n 1 basename`; do
+#
+# Add new modules
+for pkglib in $(find ${MYBUILD}/packages -name '*.so' -type l -o -name '*.so' -type f)
+do
+    pkgname=$(basename ${pkglib})    
     # check if package is in MARLIN_DLL
     FOUND=0
-    echo ${MARLIN_DLL} | grep '\(:\|^\)\([^:]*\/'$pkg'\/[^:]*\)\(:\|$\)' && FOUND=1
+    echo ${MARLIN_DLL} | grep '\(:\|^\)\([^:]*\/'$pkgname'\/[^:]*\)\(:\|$\)' && FOUND=1
     if [ ${FOUND} -eq 1 ]; then
 	#Package inside MARLIN_DLL, replace string
-	export MARLIN_DLL=`echo $MARLIN_DLL | sed 's/\(:\|^\)\([^:]*\/'$pkg'\/[^:]*\)\(:\|$\)/\1'${MYBUILD}/packages/$pkg/lib/lib${pkg}.so'\3/'`
+	MARLIN_DLL=`echo $MARLIN_DLL | sed 's/\(:\|^\)\([^:]*\/'$pkg'\/[^:]*\)\(:\|$\)/\1'${pkglib}'\3/'`
     else
 	#Package not in MARLIN_DLL, add it
-	export MARLIN_DLL="${MYBUILD}/packages/$pkg/lib/lib${pkg}.so:${MARLIN_DLL}"
+	MARLIN_DLL="${MYBUILD}/packages/$pkg/lib/lib${pkg}.so:${MARLIN_DLL}"
     fi
 done
+export MARLIN_DLL
+
