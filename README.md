@@ -23,6 +23,14 @@ shifter --image=docker:infnpd/mucoll-ilc-framework:1.5-centos8 --volume=/global/
 singularity shell --cleanenv /cvmfs/unpacked.cern.ch/registry.hub.docker.com/infnpd/mucoll-ilc-framework\:1.5-centos8
 ```
 
+### Cloning repository
+Just be careful that submodules are also cloned e.g.
+```bash
+git clone --recursive https://gitlab.cern.ch/berkeleylab/MuonCollider/LBLMuC-SiDigiDev.git
+```
+
+Note that the primary branch is called `main`.
+
 ### Build Instructions
 Run the following commands from inside the container. The same commands will also work with a local installation of the ILC software, with the exception of the first line.
 ```bash
