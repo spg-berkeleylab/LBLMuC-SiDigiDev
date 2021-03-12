@@ -30,4 +30,13 @@ export PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ':')${PATH}"
 
 #
 # Add new modules
-export MARLIN_DLL="$(find ${MYBUILD}/packages -type f -name '*.so' | tr '\n' ':')${MARLIN_DLL}"
+for pkglib in $(find ${MYBUILD}/packages -name '*.so' -type l -o -name '*.so' -type f)
+do
+    pkgname=$(basename ${pkglib})
+    if [[ "${MARLIN_DLL}" == *"${pkgname}"* ]]; then
+        MARLIN_DLL=$(echo ${MARLIN_DLL} | sed -e 's|[^:]\+'${pkgname}'|'${pkglib}'|')
+    else
+        MARLIN_DLL=${pkglib}:${MARLIN_DLL}
+    fi
+done
+export MARLIN_DLL
