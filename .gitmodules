@@ -1,15 +1,3 @@
-[submodule "packages/ACTSTuple"]
-	path = packages/ACTSTuple
-	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/ACTSTuple.git
-[submodule "packages/ACTSMCC"]
-	path = packages/ACTSMCC
-	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/ACTSMCC.git
-[submodule "exts/lcgeo"]
-	path = exts/lcgeo
-	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/lcgeo.git
 [submodule "packages/MuonCVXDDigitiser"]
 	path = packages/MuonCVXDDigitiser
 	url = https://github.com/MuonColliderSoft/MuonCVXDDigitiser.git
-[submodule "packages/LCIO"]
-	path = packages/LCIO
-	url = https://github.com/MuonColliderSoft/LCIO.git
