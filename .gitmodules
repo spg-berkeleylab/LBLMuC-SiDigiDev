@@ -7,3 +7,9 @@
 [submodule "exts/lcgeo"]
 	path = exts/lcgeo
 	url = https://gitlab.cern.ch/berkeleylab/MuonCollider/lcgeo.git
+[submodule "packages/MuonCVXDDigitiser"]
+	path = packages/MuonCVXDDigitiser
+	url = https://github.com/MuonColliderSoft/MuonCVXDDigitiser.git
+[submodule "packages/LCIO"]
+	path = packages/LCIO
+	url = https://github.com/MuonColliderSoft/LCIO.git
