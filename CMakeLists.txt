@@ -6,7 +6,7 @@ INCLUDE("/opt/ilcsoft/muonc/ILCSoft.cmake")
 
 #
 # External packages
-ADD_SUBDIRECTORY(exts/lcgeo)
+#ADD_SUBDIRECTORY(exts/lcgeo)
 
 #
 # Find and add all packages
