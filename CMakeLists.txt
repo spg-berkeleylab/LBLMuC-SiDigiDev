@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.15 FATAL_ERROR)
 
-PROJECT(LBLMuCWorkspace)
+PROJECT(LBLMuC-SiDigiDev)
 
 INCLUDE("/opt/ilcsoft/muonc/ILCSoft.cmake")
 
