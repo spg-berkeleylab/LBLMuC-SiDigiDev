@@ -1,0 +1,17 @@
+{
+	"image": "infnpd/mucoll-ilc-framework:1.5-centos8",
+
+	"containerEnv": { "DISPLAY":"${localEnv:DISPLAY}",
+					  "USER":"${localEnv:USER}",
+					  "HOME":"/home/${localEnv:USER}",
+					  "MUC_CONTAINER_VER":"1.5-centos8"					  
+					},
+	"mounts": [
+		"source=/cvmfs,target=/cvmfs,type=bind,consistency=cached",
+		"source=${localEnv:HOME}/.Xauthority,target=/home/${localEnv:USER}/.Xauthority,type=bind,consistency=cached",
+	],
+	"workspaceMount": "source=/home/${localEnv:USER}/working/muon-collider/,target=/home/${localEnv:USER},type=bind,consistency=delegated",
+	"workspaceFolder": "/home/${localEnv:USER}/LBLMuC-SiDigiDev",
+
+	"runArgs": ["--net=host"]
+}
