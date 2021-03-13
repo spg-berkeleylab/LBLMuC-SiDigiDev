@@ -6,7 +6,10 @@ INCLUDE("/opt/ilcsoft/muonc/ILCSoft.cmake")
 
 #
 # External packages
-#ADD_SUBDIRECTORY(exts/lcgeo)
+FILE(GLOB exts RELATIVE ${CMAKE_CURRENT_LIST_DIR} exts/*)
+FOREACH(ext ${exts})
+  ADD_SUBDIRECTORY(${ext})
+ENDFOREACH()
 
 #
 # Find and add all packages
@@ -17,6 +20,3 @@ FOREACH(package ${packages})
     ADD_SUBDIRECTORY(${package})
   ENDIF()
 ENDFOREACH()
-
-# Data
-ADD_SUBDIRECTORY(data)

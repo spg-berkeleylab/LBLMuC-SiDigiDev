@@ -1,3 +1,0 @@
-#
-# Steering macros
-CONFIGURE_FILE(sim_steer_muonGun_MuColl_v1_mod0.py sim_steer_muonGun_MuColl_v1_mod0.py)
