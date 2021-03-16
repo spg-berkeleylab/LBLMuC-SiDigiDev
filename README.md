@@ -56,6 +56,17 @@ Run the following commands from your run directory. Make sure to replace `${MYBU
 
 ### Event Simulation
 ```bash
-ddsim --steeringFile ${MYBUILD}/sim/sim_steer_muonGun_MuColl_v1_mod0.py
+ddsim --steeringFile ${MYWORKSPACE}/config/sim_steer_muonGun_MuColl_v1.py
 ```
 
+### Event Reconstruction
+```bash
+Marlin ${MYWORKSPACE}/config/reco_steer.xml
+```
+
+use instead `reco_steer_BIB.xml` for including BIB.
+
+### Ntuple production
+```bash
+Marlin ${MYWORKSPACE}/config/lctuple_tracker.xml
+```
