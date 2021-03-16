@@ -5,7 +5,8 @@ from g4units import mm, GeV, MeV, m, deg
 SIM = DD4hepSimulation()
 
 ## The compact XML file
-SIM.compactFile = "${PROJECT_SOURCE_DIR}/data/MuColl_v1_mod0/MuColl_v1_mod0.xml"
+#SIM.compactFile = "${PROJECT_SOURCE_DIR}/data/MuColl_v1_mod0/MuColl_v1_mod0.xml"
+SIM.compactFile = "${ILCSOFT}/detector-simulation/geometries/MuColl_v1/MuColl_v1.xml"
 ## Lorentz boost for the crossing angle, in radian!
 SIM.crossingAngleBoost = 0.
 SIM.enableDetailedShowerMode = True
@@ -19,7 +20,7 @@ SIM.macroFile = []
 ## number of events to simulate, used in batch mode
 SIM.numberOfEvents = 1000
 ## Outputfile from the simulation,only lcio output is supported
-SIM.outputFile = "muonGun_sim_MuColl_v1_mod0.slcio"
+SIM.outputFile = "muonGun_sim_MuColl_v1.slcio"
 ## Verbosity use integers from 1(most) to 7(least) verbose
 ## or strings: VERBOSE, DEBUG, INFO, WARNING, ERROR, FATAL, ALWAYS
 SIM.printLevel = 3
