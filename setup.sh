@@ -17,7 +17,7 @@ fi
 
 # Convert to absolute path
 export MYWORKSPACE=$(realpath $(dirname ${BASH_SOURCE[0]}))
-export MYBUILD=$(realpath ${MYBUILD})
+export MYBUILD=$(realpath ${MYWORKSPACE}/${MYBUILD})
 
 #
 # Main software
@@ -37,11 +37,11 @@ do
     FOUND=0
     echo ${MARLIN_DLL} | grep '\(:\|^\)\([^:]*\/'$pkgname'\/[^:]*\)\(:\|$\)' && FOUND=1
     if [ ${FOUND} -eq 1 ]; then
-	#Package inside MARLIN_DLL, replace string
-	MARLIN_DLL=`echo $MARLIN_DLL | sed 's/\(:\|^\)\([^:]*\/'$pkg'\/[^:]*\)\(:\|$\)/\1'${pkglib}'\3/'`
+	    #Package inside MARLIN_DLL, replace string
+	    MARLIN_DLL=`echo $MARLIN_DLL | sed 's/\(:\|^\)\([^:]*\/'$pkg'\/[^:]*\)\(:\|$\)/\1'${pkglib}'\3/'`
     else
-	#Package not in MARLIN_DLL, add it
-	MARLIN_DLL="${MYBUILD}/packages/$pkg/lib/lib${pkg}.so:${MARLIN_DLL}"
+	    #Package not in MARLIN_DLL, add it
+	    MARLIN_DLL="${pkglib}:${MARLIN_DLL}"
     fi
 done
 export MARLIN_DLL
