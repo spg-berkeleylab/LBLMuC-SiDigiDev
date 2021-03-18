@@ -33,15 +33,25 @@ export PATH="$(find ${MYBUILD}/exts/*/bin -type d | tr '\n' ':')${PATH}"
 for pkglib in $(find ${MYBUILD}/packages -name '*.so' -type l -o -name '*.so' -type f)
 do
     pkgname=$(basename ${pkglib})    
-    # check if package is in MARLIN_DLL
-    FOUND=0
-    echo ${MARLIN_DLL} | grep '\(:\|^\)\([^:]*\/'$pkgname'\/[^:]*\)\(:\|$\)' && FOUND=1
-    if [ ${FOUND} -eq 1 ]; then
-	    #Package inside MARLIN_DLL, replace string
-	    MARLIN_DLL=`echo $MARLIN_DLL | sed 's/\(:\|^\)\([^:]*\/'$pkg'\/[^:]*\)\(:\|$\)/\1'${pkglib}'\3/'`
+    if [[ "${MARLIN_DLL}" == *"${pkgname}"* ]]; then
+        echo "Replacing existing $pkgname in MARLIN_DLL"
+        MARLIN_DLL=$(echo ${MARLIN_DLL} | sed -e 's|[^:]\+'${pkgname}'|'${pkglib}'|')
     else
-	    #Package not in MARLIN_DLL, add it
-	    MARLIN_DLL="${pkglib}:${MARLIN_DLL}"
+        echo "Adding $pkgname to MARLIN_DLL"
+        MARLIN_DLL=${pkglib}:${MARLIN_DLL}
     fi
+
+    # # check if package is in MARLIN_DLL
+    # FOUND=0
+    # echo ${MARLIN_DLL} | egrep '(:|^)[^:]*/'$pkgname'[^:]*(:|$)' > /dev/null && FOUND=1
+    # if [ ${FOUND} -eq 1 ]; then
+    #     echo "Replacing existing $pkgname in MARLIN_DLL"
+	#     #Package inside MARLIN_DLL, replace string
+	#     MARLIN_DLL=`echo $MARLIN_DLL | sed 's/\(:\|^\)\([^:]*\/'$pkgname'\/[^:]*\)\(:\|$\)/\1'${pkglib}'\3/'`
+    # else
+    #     echo "Adding $pkgname to MARLIN_DLL"
+	#     #Package not in MARLIN_DLL, add it
+	#     MARLIN_DLL="${pkglib}:${MARLIN_DLL}"
+    # fi
 done
 export MARLIN_DLL
