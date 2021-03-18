@@ -31,6 +31,16 @@ git clone --recursive https://gitlab.cern.ch/berkeleylab/MuonCollider/LBLMuC-SiD
 
 Note that the primary branch is called `main`.
 
+Note that for submodule that are on `github`, soon only `SSH` keys will be allowed for authentication to push changes.
+However, we need to keep the `HTTPS` for pulling the packages to make the pipeline to work without authentication; to solve this, once the packages are cloned, you can change only the `push` repository url as:
+```bash
+cd packages/LCTuple/
+git remote set-url --push origin git@github.com:MuonColliderSoft/LCTuple.git
+cd ../MuonCVXDDigitiser
+git remote set-url --push origin git@github.com:MuonColliderSoft/MuonCVXDDigitiser.git
+```
+and so on for any other submodule that is hosted on `github`.
+
 ### Build Instructions
 Run the following commands from inside the container. The same commands will also work with a local installation of the ILC software, with the exception of the first line.
 ```bash
