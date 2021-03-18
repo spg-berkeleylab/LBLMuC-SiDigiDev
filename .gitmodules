@@ -3,4 +3,4 @@
 	url = https://github.com/MuonColliderSoft/MuonCVXDDigitiser.git
 [submodule "packages/LCTuple"]
 	path = packages/LCTuple
-	url = git@github.com:MuonColliderSoft/LCTuple.git
+	url = https://github.com/MuonColliderSoft/LCTuple.git
