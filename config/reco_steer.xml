@@ -22,7 +22,7 @@
 
     <!-- ==========  Tracker Digitization  ========== -->
     <!-- <processor name="VXDBarrelDigitiser"/> -->
-    <processor name="VXDBarrelRealisticDigiCMS"/>
+    <processor name="VXDBarrelRealisticDigiCMS"/> 
     <!-- disable other digi jobs for now
     <processor name="VXDEndcapDigitiser"/>
     <processor name="InnerPlanarDigiProcessor"/>
@@ -55,7 +55,7 @@
     <!-- <processor name="MyHitResiduals"/> --> <!-- please uncomment the use of this processor only if needed -->
 
     <!-- ==========  LCTuple  ========== -->
-    <!-- <processor name="LCTupleDefault" /> -->
+    <processor name="MyLCTuple" />
 
     <!-- ==========  Output  ========== -->
     <processor name="Output_REC"/>
@@ -98,7 +98,7 @@
     <!-- compression of output file 0: false >0: true (default) -->
     <parameter name="Compress" type="int" value="1"/>
     <!-- filename without extension-->
-    <parameter name="FileName" type="string" value="histograms"/>
+    <parameter name="FileName" type="string"> ntuple_tracker </parameter>
     <!-- type of output file xml (default) or root ( only OpenScientist)-->
     <parameter name="FileType" type="string" value="root "/>
   </processor>
@@ -209,47 +209,54 @@
   <!-- == LCTuple configuration                                                                              == -->
   <!-- ======================================================================================================== -->
   <!-- ======================================================================================================== -->
-
-  <processor name="LCTupleDefault" type="LCTuple">
+  <processor name="MyLCTuple" type="LCTuple">
     <!--LCTuple creates a ROOT TTRee with a column wise ntuple from LCIO collections ....-->
+    <parameter name="FullSubsetCollections" type="StringVec"> EfficientMCParticles InefficientMCParticles </parameter>
     <!--Name of the CalorimeterHit collection-->
     <parameter name="CalorimeterHitCollection" type="string" lcioInType="CalorimeterHit"> </parameter>
     <!--Name of the Cluster collection-->
-    <parameter name="ClusterCollection" type="string" lcioInType="Cluster"> PandoraClusters </parameter>
+    <parameter name="ClusterCollection" type="string" lcioInType="Cluster"> </parameter>
     <!--Name of the IsoLep collection-->
     <parameter name="IsoLepCollection" type="string" lcioInType="ReconstructedParticle"> </parameter>
     <!--Name of the Jet collection-->
-    <parameter name="JetCollection" type="string" lcioInType="ReconstructedParticle"> </parameter>
+    <parameter name="JetCollection" type="string" lcioInType="ReconstructedParticle"> JetOut </parameter>
     <!--Switch to write out extra parameters calculated using information from Jet Finder-->
-    <parameter name="JetCollectionExtraParameters" type="bool">false </parameter>
+    <parameter name="JetCollectionExtraParameters" type="bool">true </parameter>
     <!--Switch to write out jet parameters coming from LCFIPlus tagging processor-->
     <parameter name="JetCollectionTaggingParameters" type="bool">false </parameter>
     <!--Names of LCRelation collections - need parallel prefix names in RelPrefixes-->
-    <parameter name="LCRelationCollections" type="StringVec" lcioInType="LCRelation">  </parameter>
-    <!-- Names of prefixes for variables from LCRelation collections - needs to be parallel to LCRelationCollections (one prefix per collection) -->
-    <parameter name="LCRelationPrefixes" type="StringVec"> </parameter>
+    <parameter name="LCRelationCollections" type="StringVec" lcioInType="LCRelation">
+      RecoMCTruthLink 
+      SiTracksMCTruthLink
+    </parameter>
+    <!-- Names of prefixes for variables from LCRelation collections - needs to be parallel to LCRelationCollections (one prefix per collection)-->
+    <parameter name="LCRelationPrefixes" type="StringVec">  
+      r2m  
+      r2t  
+    </parameter>
     <!--Names of LCRelation collections of PFO-->
     <parameter name="LCRelationwithPFOCollections" type="string" lcioInType="LCRelation"> </parameter>
     <!--Name of the MCParticle collection-->
-    <parameter name="MCParticleCollection" type="string" lcioInType="MCParticle"> MCParticle </parameter>
-    <!--Name of the MCParticle collection where the overlay is removed-->111111
-    <parameter name="MCParticleRemoveOverlayCollection" type="string" lcioInType="MCParticle"> </parameter>
+    <parameter name="MCParticleCollection" type="string" lcioInType="MCParticle"> </parameter>
+    <parameter name="MCParticleNotReco" type="string" lcioOutType="MCParticle"> </parameter>
+    <!--Name of the MCParticle collection where the overlay is removed-->
+    <!--parameter name="MCParticleRemoveOverlayCollection" type="string" lcioInType="MCParticle"> </parameter-->
     <!--Name of the PFO collection with Relation-->
-    <parameter name="PFOwithRelationCollection" type="string" lcioInType="ReconstructedParticle"> </parameter>
+    <!--parameter name="PFOwithRelationCollection" type="string" lcioInType="ReconstructedParticle"> </parameter-->
     <!--Name of the ReconstructedParticle collection-->
-    <parameter name="RecoParticleCollection" type="string" lcioInType="ReconstructedParticle">ReconstructedParticle </parameter>
+    <parameter name="RecoParticleCollection" type="string" lcioInType="ReconstructedParticle"> </parameter> 
     <!--Name of the SimCalorimeterHit collection-->
     <parameter name="SimCalorimeterHitCollection" type="string" lcioInType="SimCalorimeterHit"> </parameter>
     <!--Name of the SimTrackerHit collection-->
-    <parameter name="SimTrackerHitCollection" type="string" lcioInType="SimTrackerHit"> </parameter>
+    <parameter name="SimTrackerHitCollection" type="string" lcioInType="SimTrackerHit"> VertexBarrelCollection </parameter>
     <!--Name of the Track collection-->
-    <parameter name="TrackCollection" type="string" lcioInType="Track"> </parameter>
+    <parameter name="TrackCollection" type="string" lcioInType="Track">SiTracks_Refitted </parameter>
     <!--Name of the TrackerHit collection-->
-    <parameter name="TrackerHitCollection" type="string" lcioInType="TrackerHit"> </parameter>
+    <parameter name="TrackerHitCollection" type="string" lcioInType="TrackerHit"> VXDTrackerHits </parameter>    
     <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
     <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
     <!--Name of the Vertex collection-->
-    <parameter name="VertexCollection" type="string" lcioInType="Vertex"> </parameter>
+    <parameter name="VertexCollection" type="string" lcioInType="Vertex"> PrimaryVertices </parameter>
     <!--Switch to write out collection parameters-->
     <parameter name="WriteCalorimeterHitCollectionParameters" type="bool">false </parameter>
     <!--Switch to write out collection parameters-->
@@ -271,10 +278,9 @@
     <!--Switch to write out collection parameters-->
     <parameter name="WriteTrackerHitCollectionParameters" type="bool">true </parameter>
     <!--Switch to write out collection parameters-->
-    <parameter name="WriteVertexCollectionParameters" type="bool">false </parameter>
+    <parameter name="WriteVertexCollectionParameters" type="bool">true </parameter>
   </processor>
-
-
+  
   
   <!-- ======================================================================================================== -->
   <!-- ======================================================================================================== -->
@@ -311,7 +317,7 @@
     <parameter name="ElectronicEffects" type="int"> 1 </parameter>
     <parameter name="ElectronicNoise" type="float"> 100 </parameter>
     <!-- store all fired pixels -->
-    <parameter name="StoreFiredPixels" type="int"> 0 </parameter>
+    <parameter name="StoreFiredPixels" type="int"> 1 </parameter>
     <!-- Energy Loss keV/mm -->
     <parameter name="EnergyLoss" type="float"> 280.0 </parameter>
     <!-- Max delta in energy for hit in electrons -->
