@@ -253,6 +253,7 @@
     <parameter name="TrackCollection" type="string" lcioInType="Track">SiTracks_Refitted </parameter>
     <!--Name of the TrackerHit collection-->
     <parameter name="TrackerHitCollection" type="string" lcioInType="TrackerHit"> VXDTrackerHits </parameter>    
+    <parameter name="TrackerHitConstituentsCollection" type="string" lcioInType="SimTrackerHit"> VTXPixels </parameter>    
     <!--verbosity level of this processor ("DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT")-->
     <!--parameter name="Verbosity" type="string">DEBUG </parameter-->
     <!--Name of the Vertex collection-->
@@ -289,7 +290,7 @@
   <!-- ======================================================================================================== -->
 
   <processor name="VXDBarrelRealisticDigiCMS" type="MuonCVXDDigitiser">
-    <parameter name="Verbosity" type="string">DEBUG7 </parameter>
+    <parameter name="Verbosity" type="string">DEBUG6 </parameter>
     <parameter name="CollectionName" type="string"> VertexBarrelCollection </parameter>
     <parameter name="OutputCollectionName" type="string"> VXDTrackerHits </parameter>
     <parameter name="RelationColName" type="string"> VTXTrackerHitRelations </parameter>
