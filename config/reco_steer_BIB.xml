@@ -124,7 +124,7 @@
       muonGun_sim_MuColl_v1.slcio
     </parameter>
     <!-- Limit the number of processed records (run+evt): -->
-    <parameter name="MaxRecordNumber"> -1 </parameter>
+    <parameter name="MaxRecordNumber"> 10 </parameter>
     <parameter name="SkipNEvents"> 0 </parameter>
     <parameter name="SupressCheck"> false </parameter>
     <parameter name="Verbosity" options="DEBUG0-9,MESSAGE0-9,WARNING0-9,ERROR0-9,SILENT">WARNING </parameter>
@@ -237,11 +237,13 @@
     <parameter name="LCRelationCollections" type="StringVec" lcioInType="LCRelation">
       RecoMCTruthLink 
       SiTracksMCTruthLink
+      VTXTrackerHitRelations
     </parameter>
     <!-- Names of prefixes for variables from LCRelation collections - needs to be parallel to LCRelationCollections (one prefix per collection)-->
     <parameter name="LCRelationPrefixes" type="StringVec">  
       r2m  
-      r2t  
+      r2t
+      h2m
     </parameter>
     <!--Names of LCRelation collections of PFO-->
     <parameter name="LCRelationwithPFOCollections" type="string" lcioInType="LCRelation"> </parameter>
