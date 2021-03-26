@@ -36,14 +36,18 @@ void MyLCTuple::Loop()
    h["clus_posres_y"] = new TH1F("clus_posres_y", "Cluster position Y (reco - true); #Delta y (#mu m);a.u.",
                                100, -50., 50.);
    h["clus_size_x"] = new TH1F("clus_size_x", "Cluster size in X direction; Size (pixels); a.u.",
-                              50, -0.5, 45.5);
+                              50, -0.5, 49.5);
    h["clus_size_y"] = new TH1F("clus_size_y", "Cluster size in Y direction; Size (pixels); a.u.",
-                              50, -0.5, 45.5);
+                              50, -0.5, 49.5);
    h["clus_size_y_theta"] = new TH2F("clus_sizeY_theta", "Cluster size in Y direction vs #theta; #theta (deg); Size (pixels); a.u.",
-                                     140, 20.0, 160.0, 100, -0.5, 45.5 );
+                                     140, 20.0, 160.0, 100, -0.5, 49.5 );
    h["hit_charge"] = new TH1F("hit_charge", "Hit Charge;charge (e^{-});a.u.",
                               100, 0.0, 10000. );
    
+   size_t numClusters_size_cut = 0;
+   size_t numClusters_size_cut_loose = 0;
+   size_t numClusters = 0;
+
    Long64_t nentries = fChain->GetEntriesFast();
 
    Long64_t nbytes = 0, nb = 0;
@@ -78,8 +82,8 @@ void MyLCTuple::Loop()
         }
 
         //cluster shape
-        int size_x = std::abs(maxX - minX);
-        int size_y = std::abs(maxY - minY);
+        int size_x = std::abs(maxX - minX) + 1;
+        int size_y = std::abs(maxY - minY) + 1;
         float theta = std::atan(stmoy[g4_idx] / stmoz[g4_idx]);
         float clus_theta = std::atan(thpoy[ic]/thpoz[ic]);
         //std::cout << "Theta MC = " << theta << ", Theta Cluster = " << clus_theta << ", minX= " << minX << ", maxX= " << maxX << ", minY=" << minY << ", maxY=" << maxY << std::endl;       
@@ -87,6 +91,21 @@ void MyLCTuple::Loop()
         h["clus_size_x"]->Fill(size_x);        
         h["clus_size_y"]->Fill(size_y);
         h["clus_size_y_theta"]->Fill(theta / TMath::Pi() * 180.0, size_y);
+
+        //test hit filtering cuts
+        float theta_m90 = std::abs(theta - TMath::Pi()/2);
+        int max_sizeY=999;
+        if (theta_m90 < 0.52359878) max_sizeY = 2; //30 deg
+        else if (theta_m90 < 0.87266463) max_sizeY = 3; //50 deg
+        else if (theta_m90 < 1.2217305) max_sizeY = 3; //70 deg
+        int max_sizeY_loose=999;
+        if (theta_m90 < 0.52359878) max_sizeY_loose = 3;
+        else if (theta_m90 < 0.87266463) max_sizeY_loose = 4;
+        else if (theta_m90 < 1.2217305) max_sizeY_loose = 6;
+
+        numClusters++;
+        if (size_y < max_sizeY) numClusters_size_cut++;
+        if (size_y < max_sizeY_loose) numClusters_size_cut_loose++;        
         
       } // loop over clusters
       
@@ -97,4 +116,8 @@ void MyLCTuple::Loop()
    for (auto ih : h) {
      ih.second->Write();
    }
+
+   std::cout << "Cluster filter efficiency: " << std::endl;
+   std::cout << "Tight cut: " << (float)numClusters_size_cut / numClusters << std::endl;
+   std::cout << "Loose cut: " << (float)numClusters_size_cut_loose / numClusters << std::endl;
 }
