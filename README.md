@@ -23,6 +23,16 @@ shifter --image=docker:infnpd/mucoll-ilc-framework:1.5-centos8 --volume=/global/
 singularity shell --cleanenv /cvmfs/unpacked.cern.ch/registry.hub.docker.com/infnpd/mucoll-ilc-framework\:1.5-centos8
 ```
 
+### Docker (local)
+```bash
+MUC_CONTAINER_VER=1.5-centos8
+PWD=path/to/working/directory
+docker run -ti --rm --env DISPLAY=${DISPLAY} --env USER=${USER} --env HOME=/home/${USER} --env MUC_CONTAINER_VER=${MUC_CONTAINER_VER} --user=$(id -u $USER):$(id -g $USER) -v ${PWD}:/home/${USER} -v /cvmfs:/cvmfs -w /home/${USER} -v ${HOME}/.Xauthority:/home/${USER}/.Xauthority --net=host --entrypoint /bin/bash infnpd/mucoll-ilc-framework:${MUC_CONTAINER_VER}
+```
+where PWD is the path to your working directory. If this is your first time running this container, docker will pull it automatically, which takes a while.
+
+Alternatively, use VSCode config files detailed in the VSCode setup section.
+
 ### Cloning repository
 Just be careful that submodules are also cloned e.g.
 ```bash
