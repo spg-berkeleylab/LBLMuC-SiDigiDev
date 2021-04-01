@@ -309,7 +309,7 @@
     <!--Number of bunches in a bunch train-->
     <parameter name="NBunchtrain" type="int" value="1"/>  
     <!-- Avoid propagating BIB MC particles to the final collection to limit memory usage -->
-    <parameter name="MergeMCParticles" type="bool" value="false"/>
+    <!--parameter name="MergeMCParticles" type="bool" value="false"/ -->
 
     <parameter name="Collection_IntegrationTimes" type="StringVec" >
 
