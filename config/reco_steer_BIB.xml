@@ -388,7 +388,7 @@
   <!-- ======================================================================================================== -->
 
   <processor name="VXDBarrelRealisticDigiCMS" type="MuonCVXDDigitiser">
-    <parameter name="Verbosity" type="string">DEBUG6 </parameter>
+    <parameter name="Verbosity" type="string">MESSAGE </parameter>
     <parameter name="CollectionName" type="string"> VertexBarrelCollection </parameter>
     <parameter name="OutputCollectionName" type="string"> VXDTrackerHits </parameter>
     <parameter name="RelationColName" type="string"> VTXTrackerHitRelations </parameter>
