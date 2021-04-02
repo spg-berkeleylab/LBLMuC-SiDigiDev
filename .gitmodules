@@ -1,6 +1,12 @@
 [submodule "packages/MuonCVXDDigitiser"]
 	path = packages/MuonCVXDDigitiser
 	url = https://github.com/MuonColliderSoft/MuonCVXDDigitiser.git
+	branch=lbldev
 [submodule "packages/LCTuple"]
 	path = packages/LCTuple
 	url = https://github.com/MuonColliderSoft/LCTuple.git
+	branch=sidigi-dev
+[submodule "packages/Overlay"]
+	path = packages/Overlay
+	url = https://github.com/MuonColliderSoft/Overlay.git
+	branch = mc-lbl
