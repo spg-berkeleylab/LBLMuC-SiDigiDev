@@ -39,6 +39,7 @@ void plotHistograms(Double_t timeWindow = NULL)
   Int_t tcrp0[nmax];
   Int_t tcrp1[nmax];
   Int_t h2mf[nmax];
+  Int_t h2mt[nmax];  
   Float_t stedp[nmax];
   Float_t thedp[nmax];
   Float_t tcedp[nmax];
@@ -59,6 +60,7 @@ void plotHistograms(Double_t timeWindow = NULL)
   t->SetBranchAddress("tcrp0", tcrp0);
   t->SetBranchAddress("tcrp1", tcrp1);
   t->SetBranchAddress("h2mf", h2mf);
+  t->SetBranchAddress("h2mt", h2mt);  
   t->SetBranchAddress("stedp", stedp);
   t->SetBranchAddress("thedp", thedp);
   t->SetBranchAddress("tcedp", tcedp);
@@ -83,7 +85,7 @@ void plotHistograms(Double_t timeWindow = NULL)
           clustersExcluded++;
           continue; 
       }
-      Int_t truth = h2mf[clus];
+      Int_t truth = h2mt[clus];
       Float_t clusCharge = thedp[clus] * electrons_per_GeV;
       h["clus_charge"]->Fill(clusCharge);
       h["clus_posres_x"]->Fill((thpox[clus] - stpox[truth]) * 1e3);

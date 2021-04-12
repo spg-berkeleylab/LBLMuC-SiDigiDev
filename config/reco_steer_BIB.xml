@@ -124,7 +124,7 @@
       muonGun_sim_MuColl_v1.slcio
     </parameter>
     <!-- Limit the number of processed records (run+evt): -->
-    <parameter name="MaxRecordNumber"> 10 </parameter>
+    <parameter name="MaxRecordNumber"> 5 </parameter>
     <parameter name="SkipNEvents"> 0 </parameter>
     <parameter name="SupressCheck"> false </parameter>
     <parameter name="Verbosity" options="DEBUG0-9,MESSAGE0-9,WARNING0-9,ERROR0-9,SILENT">WARNING </parameter>
@@ -248,7 +248,7 @@
     <!--Names of LCRelation collections of PFO-->
     <parameter name="LCRelationwithPFOCollections" type="string" lcioInType="LCRelation"> </parameter>
     <!--Name of the MCParticle collection-->
-    <parameter name="MCParticleCollection" type="string" lcioInType="MCParticle"> </parameter>
+    <parameter name="MCParticleCollection" type="string" lcioInType="MCParticle">MCParticle</parameter>
     <parameter name="MCParticleNotReco" type="string" lcioOutType="MCParticle"> </parameter>
     <!--Name of the MCParticle collection where the overlay is removed-->
     <parameter name="MCParticleRemoveOverlayCollection" type="string" lcioInType="MCParticle"> </parameter>
@@ -352,29 +352,23 @@
 
     <processor name="OverlayBIB" type="OverlayTimingGeneric">
       <parameter name="BackgroundFileNames" type="StringVec">
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j1.slcio
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j2.slcio
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j3.slcio
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j4.slcio
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j5.slcio
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j6.slcio
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j7.slcio
-	      /data/samples/BIB/sim_mumi-1e3x500-26m-lowth-excl_j8.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j1.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j2.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j3.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j4.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j5.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j6.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j7.slcio
-	      /data/samples/BIB/sim_mupl-1e3x500-26m-lowth-excl_j8.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mumi-1e3x500-26m-lowth-excl_c00.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mupl-1e3x500-26m-lowth-excl_c00.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mumi-1e3x500-26m-lowth-excl_c01.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mupl-1e3x500-26m-lowth-excl_c01.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mumi-1e3x500-26m-lowth-excl_c02.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mupl-1e3x500-26m-lowth-excl_c02.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mumi-1e3x500-26m-lowth-excl_c03.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mupl-1e3x500-26m-lowth-excl_c03.slcio
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mumi-1e3x500-26m-lowth-excl_c04.slcio	
+	/data/bib/MuCollv1_25ns_nEkin150MeV_QGSPBERT/sim_mupl-1e3x500-26m-lowth-excl_c04.slcio	      
       </parameter>
       <parameter name="StartBackgroundFileIndex" type="int" value="0"/>
       <parameter name="AllowReusingBackgroundFiles" type="bool" value="false" />
       <parameter name="Verbosity" options="DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT">WARNING </parameter>
       <parameter name="NBunchtrain" type="int" value="1" />
-      <!--<parameter name="NumberBackground" type="float" value="2993" />-->
-      <parameter name="NumberBackground" type="float" value="30" />
+      <parameter name="NumberBackground" type="float" value="2993" />
+      <!--parameter name="NumberBackground" type="float" value="30" /-->
     </processor>
 
   </group>
@@ -388,7 +382,7 @@
   <!-- ======================================================================================================== -->
 
   <processor name="VXDBarrelRealisticDigiCMS" type="MuonCVXDDigitiser">
-    <parameter name="Verbosity" type="string">DEBUG6 </parameter>
+    <parameter name="Verbosity" type="string">MESSAGE </parameter>
     <parameter name="CollectionName" type="string"> VertexBarrelCollection </parameter>
     <parameter name="OutputCollectionName" type="string"> VXDTrackerHits </parameter>
     <parameter name="RelationColName" type="string"> VTXTrackerHitRelations </parameter>
