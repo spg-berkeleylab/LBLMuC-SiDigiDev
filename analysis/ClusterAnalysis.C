@@ -13,7 +13,7 @@ using namespace TMath;
 
 std::map<std::string, TH1 *> h;
 const float electrons_per_GeV = 1. / 0.00362 * 1e6;
-const int nmax = 1000;
+const int nmax = 10000;
 const float c_mm_per_ns = 299.792458;
 
 /*
@@ -79,6 +79,7 @@ void plotHistograms(Double_t timeWindow = NULL)
     Int_t clustersExcluded = 0;
     for (int clus = 0; clus < ntrh; ++clus)
     {
+      //Traveltime in ns
       Double_t travTime = Sqrt(Sq(thpox[clus]) + Sq(thpoy[clus]) + Sq(thpoz[clus])) / c_mm_per_ns;
       Double_t clusStart = sttim[clus] - travTime;
       if (timeWindow && (clusStart > timeWindow || clusStart < -timeWindow)) { 
@@ -123,12 +124,12 @@ void plotHistograms(Double_t timeWindow = NULL)
   TFile *outputFile = new TFile("analysis2.root", "RECREATE");
   for (auto const &ph : h)
   {
-    if(!timeWindow && ph.first == "hits_incl") {
+    if(!timeWindow && ph.first == "hits_rem") {
       continue;
     }
     TCanvas *canv = new TCanvas("?", "?", 900, 600);
     ph.second->Draw();
-    canv->SaveAs((ph.first + ".png").c_str()); //save pngs of the plots
+    //canv->SaveAs((ph.first + ".png").c_str()); //save pngs of the plots
     ph.second->Write();
   }
 }
