@@ -11,11 +11,15 @@
 using namespace std;
 using namespace TMath;
 
-std::map<std::string, TH1*> h;
+std::map<std::string, TH1 *> h;
 const float electrons_per_GeV = 1. / 0.00362 * 1e6;
 const int nmax = 1000;
+const float c_mm_per_ns = 299.792458;
 
-void plotHistograms()
+/*
+Plots cluster analysis histograms. Providing timeWindow in ns eliminates clusters outside of -timeWindow and +timeWindow.
+*/
+void plotHistograms(Double_t timeWindow = NULL)
 {
   //Init histograms
   h["clus_charge"] = new TH1F("clus_charge", "Cluster charge;charge (e^{-});a.u.", 100, 0.0, 50000.);
@@ -26,6 +30,7 @@ void plotHistograms()
   h["clus_size_y"] = new TH1F("clus_size_y", "Cluster size in Y direction; Size (pixels); a.u.", 50, -0.5, 49.5);
   h["clus_size_y_theta"] = new TH2F("clus_sizeY_theta", "Cluster size in Y direction vs #theta; #theta (deg); Size (pixels); a.u.",
                                     140, 20.0, 160.0, 100, -0.5, 10.5);
+  h["hits_rem"] = new TH1F("hits_rem", "Percentage Removal (BIB); % of clusters removed; # of events", 100, 0.0, 100.0);
 
   Int_t ntrh;
   Int_t ntrc;
@@ -39,9 +44,11 @@ void plotHistograms()
   Float_t tcedp[nmax];
   Double_t thpox[nmax];
   Double_t thpoy[nmax];
+  Double_t thpoz[nmax];
   Double_t stpox[nmax];
   Double_t stpoy[nmax];
   Double_t stpoz[nmax];
+  Double_t sttim[nmax];
 
   TFile *myFile = TFile::Open("../ntuple_tracker.root");
   TTree *t = myFile->Get<TTree>("MyLCTuple;1");
@@ -57,16 +64,25 @@ void plotHistograms()
   t->SetBranchAddress("tcedp", tcedp);
   t->SetBranchAddress("thpox", thpox);
   t->SetBranchAddress("thpoy", thpoy);
+  t->SetBranchAddress("thpoz", thpoz);
   t->SetBranchAddress("stpox", stpox);
   t->SetBranchAddress("stpoy", stpoy);
   t->SetBranchAddress("stpoz", stpoz);
+  t->SetBranchAddress("sttim", sttim);
   Int_t nevents = t->GetEntries();
 
   for (int i = 0; i < nevents; ++i)
   {
     t->GetEntry(i);
+    Int_t clustersExcluded = 0;
     for (int clus = 0; clus < ntrh; ++clus)
     {
+      Double_t travTime = Sqrt(Sq(thpox[clus]) + Sq(thpoy[clus]) + Sq(thpoz[clus])) / c_mm_per_ns;
+      Double_t clusStart = sttim[clus] - travTime;
+      if (timeWindow && (clusStart > timeWindow || clusStart < -timeWindow)) { 
+          clustersExcluded++;
+          continue; 
+      }
       Int_t truth = h2mf[clus];
       Float_t clusCharge = thedp[clus] * electrons_per_GeV;
       h["clus_charge"]->Fill(clusCharge);
@@ -96,13 +112,21 @@ void plotHistograms()
       h["clus_size_y"]->Fill(sizeY);
       h["clus_size_y_theta"]->Fill(theta, sizeY);
     }
+    if (ntrh != 0) {
+      h["hits_rem"]->Fill(clustersExcluded / ntrh);
+    }
   }
 
+
   TFile *outputFile = new TFile("analysis2.root", "RECREATE");
-  for (auto const& ph : h) {
-    TCanvas* canv = new TCanvas("?", "?", 900, 600);
+  for (auto const &ph : h)
+  {
+    if(!timeWindow && ph.first == "hits_incl") {
+      continue;
+    }
+    TCanvas *canv = new TCanvas("?", "?", 900, 600);
     ph.second->Draw();
-    //canv->SaveAs((ph.first + ".png").c_str()); //save pngs of the plots
+    canv->SaveAs((ph.first + ".png").c_str()); //save pngs of the plots
     ph.second->Write();
   }
 }
