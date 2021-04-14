@@ -15,7 +15,7 @@ All commands should be run inside the `infnpd/mucoll-ilc-framework:1.5-centos8` 
 
 #### Shifter (cori)
 ```bash
-shifter --image=docker:infnpd/mucoll-ilc-framework:1.5-centos8 --volume=/global/cfs/cdirs/atlas/spgriso/MuonCollider/tutorial-data:/data -- /bin/bash
+shifter --image=docker:infnpd/mucoll-ilc-framework:1.5-centos8 --volume=/global/cfs/cdirs/atlas/spgriso/MuonCollider/data:/data -- /bin/bash
 ```
 
 #### Singularity
@@ -23,7 +23,7 @@ shifter --image=docker:infnpd/mucoll-ilc-framework:1.5-centos8 --volume=/global/
 singularity shell --cleanenv /cvmfs/unpacked.cern.ch/registry.hub.docker.com/infnpd/mucoll-ilc-framework\:1.5-centos8
 ```
 
-### Docker (local)
+#### Docker (local)
 ```bash
 MUC_CONTAINER_VER=1.5-centos8
 PWD=path/to/working/directory
