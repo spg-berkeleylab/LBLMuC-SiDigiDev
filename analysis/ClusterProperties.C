@@ -88,7 +88,10 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
                                     140, 20.0, 160.0, 100, -0.5, 49.5 );
   h["hit_charge"] = new TH1F("hit_charge", "Hit Charge;charge (e^{-});a.u.",
                               100, 0.0, 10000. );
-
+  h["clus_rem"] = new TH1F("hits_rem", "Percentage Removal (Loose); % of clusters removed; # of events", 
+                              100, 0.0, 100.0);
+  h["clus_rem_tight"] = new TH1F("hits_rem", "Percentage Removal (Tight); % of clusters removed; # of events", 
+                              100, 0.0, 100.0);
   size_t numClusters_size_cut = 0;
   size_t numClusters_size_cut_loose = 0;
   size_t numClusters = 0;
@@ -99,6 +102,8 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
       tin->GetEntry(jentry);
 
+      int numClusters_size_cut_event = 0;
+      int numClusters_size_cut_event_loose = 0;
       for (size_t ic = 0; ic < ntrh; ++ic) {
         //cluster properties
         size_t g4_idx = h2mt[ic]; // note: 1-1 association!
@@ -151,11 +156,14 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
         else if (theta_m90 < 1.2217305) max_sizeY_loose = 6;
 
         numClusters++;
-        if (size_y < max_sizeY) numClusters_size_cut++;
-        if (size_y < max_sizeY_loose) numClusters_size_cut_loose++;        
+        if (size_y < max_sizeY) numClusters_size_cut_event++;
+        if (size_y < max_sizeY_loose) numClusters_size_cut_event_loose++;        
         
       } // loop over clusters
-      
+      h["clus_rem"]->Fill((float)numClusters_size_cut_event / ntrh);
+      h["clus_rem_loose"]->Fill((float)numClusters_size_cut_event_loose / ntrh);
+      numClusters_size_cut += numClusters_size_cut_event;
+      numClusters_size_cut_loose += numClusters_size_cut_event_loose;
   } // loop over events
 
   //Save histograms
