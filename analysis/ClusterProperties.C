@@ -160,8 +160,10 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
         if (size_y < max_sizeY_loose) numClusters_size_cut_event_loose++;        
         
       } // loop over clusters
-      h["clus_rem"]->Fill((float)numClusters_size_cut_event / ntrh);
-      h["clus_rem_loose"]->Fill((float)numClusters_size_cut_event_loose / ntrh);
+      if(ntrh > 0) {
+        h["clus_rem"]->Fill((float)numClusters_size_cut_event / ntrh);
+        h["clus_rem_loose"]->Fill((float)numClusters_size_cut_event_loose / ntrh);
+      }
       numClusters_size_cut += numClusters_size_cut_event;
       numClusters_size_cut_loose += numClusters_size_cut_event_loose;
   } // loop over events
