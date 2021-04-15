@@ -88,9 +88,9 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
                                     140, 20.0, 160.0, 100, -0.5, 49.5 );
   h["hit_charge"] = new TH1F("hit_charge", "Hit Charge;charge (e^{-});a.u.",
                               100, 0.0, 10000. );
-  h["clus_rem"] = new TH1F("hits_rem", "Percentage Removal (Loose); % of clusters removed; # of events", 
+  h["clus_rem"] = new TH1F("clus_rem", "Percentage Removal (Loose); % of clusters removed; # of events", 
                               100, 0.0, 100.0);
-  h["clus_rem_tight"] = new TH1F("hits_rem", "Percentage Removal (Tight); % of clusters removed; # of events", 
+  h["clus_rem_tight"] = new TH1F("clus_rem_tight", "Percentage Removal (Tight); % of clusters removed; # of events", 
                               100, 0.0, 100.0);
   size_t numClusters_size_cut = 0;
   size_t numClusters_size_cut_loose = 0;
