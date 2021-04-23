@@ -1,6 +1,8 @@
 #include "TH2.h"
+#include "TH1.h"
 #include "TStyle.h"
 #include "TCanvas.h"
+#include "THStack.h"
 #include "TTree.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
@@ -119,9 +121,29 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
   }
   h["hit_charge"] = new TH1F("hit_charge", "Hit Charge;charge (e^{-});a.u.",
                               100, 0.0, 10000. );
+  h["clus_kept_loose"] = new TH1F("clus_kept_loose", "Percentage Kept (Loose); % of clusters kept; # of events", 
+                              100, -0.5, 100.5);
+  h["clus_kept"] = new TH1F("clus_kept", "Percentage Kept (Tight); % of clusters kept; # of events", 
+                              100, -0.5, 100.5);
+  h["clus_kept_xy"] = new TH2F("clus_kept_xy", "Reco cluster position of kept (tight); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_kept_rz"] = new TH2F("clus_kept_rz", "Reco cluster position of kept (tight); Reco Z (mm);a.u.; Reco R (mm); a.u.", 
+                              160, -80.0, 80.0, 160, -80.0, 80.0);
+  h["clus_lost_xy"] = new TH2F("clus_lost_xy", "Reco cluster position of lost (tight); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_lost_rz"] = new TH2F("clus_lost_rz", "Reco cluster position of lost (tight); Reco Z (mm);a.u.; Reco R (mm); a.u.", 
+                              160, -80.0, 80.0, 160, -80.0, 80.0);
+  h["clus_kept_xy_loose"] = new TH2F("clus_kept_xy_loose", "Reco cluster position X-Y of kept (loose); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_kept_rz_loose"] = new TH2F("clus_kept_rz_loose", "Reco cluster position R-Z of kept (loose); Reco Z (mm);a.u.; Reco R (mm); a.u.", 
+                              160, -80.0, 80.0, 160, -80.0, 80.0);
+  h["clus_lost_xy_loose"] = new TH2F("clus_lost_xy_loose", "Reco cluster position X-Y of lost (loose); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_lost_rz_loose"] = new TH2F("clus_lost_rz_loose", "Reco cluster position R-Z of lost (loose); Reco Z (mm); a.u.; Reco R(mm); a.u.", 
+                              160, -80.0, 80.0, 160, -80.0, 80.0);
 
-  size_t numClusters_size_cut = 0;
-  size_t numClusters_size_cut_loose = 0;
+  float worst_cut = FLT_MAX;
+  float worst_cut_loose = FLT_MAX;
   size_t numClusters = 0;
 
   Long64_t nentries = tin->GetEntries();
@@ -130,6 +152,8 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
       tin->GetEntry(jentry);
 
+      int numClusters_size_cut_event = 0;
+      int numClusters_size_cut_event_loose = 0;
       for (size_t ic = 0; ic < ntrh; ++ic) {
         //cluster properties
         size_t g4_idx = h2mt[ic]; // note: 1-1 association!
@@ -212,11 +236,29 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
         //else if (theta_m90 < 1.2217305) max_sizeY_loose = 6;
 
         numClusters++;
-        if (size_y <= max_sizeY) numClusters_size_cut++;
-        if (size_y <= max_sizeY_loose) numClusters_size_cut_loose++;        
+        float thpor = std::sqrt(thpox[ic]*thpox[ic]+thpoy[ic]*thpoy[ic]);
+        if (size_y <= max_sizeY) { 
+          numClusters_size_cut_event++;
+          h["clus_kept_xy"]->Fill(thpox[ic], thpoy[ic]);
+          h["clus_kept_rz"]->Fill(thpoz[ic], thpor);
+        } else {
+          h["clus_lost_xy"]->Fill(thpox[ic], thpoy[ic]);
+          h["clus_lost_rz"]->Fill(thpoz[ic], thpor);
+        }
+        if (size_y <= max_sizeY_loose) {
+          h["clus_kept_xy_loose"]->Fill(thpox[ic], thpoy[ic]);
+          h["clus_kept_rz_loose"]->Fill(thpoz[ic], thpor);
+          numClusters_size_cut_event_loose++;
+        } else {
+          h["clus_lost_xy_loose"]->Fill(thpox[ic], thpoy[ic]);
+          h["clus_lost_rz_loose"]->Fill(thpoz[ic], thpor);
+        }
         
       } // loop over clusters
-      
+      if(ntrh > 0) {
+        h["clus_kept"]->Fill(100 * (float)numClusters_size_cut_event / ntrh);
+        h["clus_kept_loose"]->Fill(100 * (float)numClusters_size_cut_event_loose / ntrh);
+      }
   } // loop over events
 
   //Save histograms
@@ -225,9 +267,40 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
     ih.second->Write();
   }
 
-  std::cout << "Cluster filter efficiency: " << std::endl;
-  std::cout << "Tight cut: " << (float)numClusters_size_cut / numClusters << std::endl;
-  std::cout << "Loose cut: " << (float)numClusters_size_cut_loose / numClusters << std::endl;
+  //Save Stacks
+  //Kept is red, lost is green
+  THStack *xy_stack_loose = new THStack("xy_stack_loose", "Reco X-Y clusters kept and lost (loose)");
+  h["clus_kept_xy_loose"]->SetFillColor(kRed);
+  h["clus_lost_xy_loose"]->SetFillColor(kGreen);
+  xy_stack_loose->Add(h["clus_kept_xy_loose"]);
+  xy_stack_loose->Add(h["clus_lost_xy_loose"]);
+  xy_stack_loose->Write();
+
+  THStack *xy_stack = new THStack("xy_stack", "Reco X-Y clusters kept and lost (tight)");
+  h["clus_kept_xy"]->SetFillColor(kRed);
+  h["clus_lost_xy"]->SetFillColor(kGreen);
+  xy_stack->Add(h["clus_kept_xy"]);
+  xy_stack->Add(h["clus_lost_xy"]);
+  xy_stack->Write();
+
+  THStack *rz_stack_loose = new THStack("rz_stack_loose", "Reco R-Z clusters kept and lost (loose)");
+  h["clus_kept_rz_loose"]->SetFillColor(kRed);
+  h["clus_lost_rz_loose"]->SetFillColor(kGreen);
+  rz_stack_loose->Add(h["clus_kept_rz_loose"]);
+  rz_stack_loose->Add(h["clus_lost_rz_loose"]);
+  rz_stack_loose->Write();
+
+  THStack *rz_stack = new THStack("rz_stack", "Reco R-Z clusters kept and lost (tight)");
+  h["clus_kept_rz"]->SetFillColor(kRed);
+  h["clus_lost_rz"]->SetFillColor(kGreen);
+  rz_stack->Add(h["clus_kept_rz"]);
+  rz_stack->Add(h["clus_lost_rz"]);
+  rz_stack->Write();
+
+//Replaced by average of clus_kept and clus_kept_loose histograms.
+  std::cout << "Cluster filter: " << std::endl;
+  std::cout << "Tight cut: " << h["clus_kept"]->GetMean() << std::endl;
+  std::cout << "Loose cut: " << h["clus_kept_loose"]->GetMean() << std::endl;
 }
 
 void initBranches(TTree *t) 

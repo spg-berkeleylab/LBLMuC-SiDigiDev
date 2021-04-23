@@ -5,4 +5,7 @@ build
 run
 .*
 log.*
+*.png
+*.slcio
 SiDigiDev.code-workspace
+*.root
