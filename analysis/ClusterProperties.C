@@ -16,6 +16,7 @@
 
 
 std::map<std::string, TH1*> h;
+void initHistograms();
 
 const float electrons_per_keV = 1. / 0.00362;
 const std::vector<float> theta_m90_ranges = {0.0, 30.0, 50.0, 70.0}; // |theta - pi/2| (deg)
@@ -56,6 +57,13 @@ Double_t stpoz[nmax];
 Float_t stmox[nmax];
 Float_t stmoy[nmax];
 Float_t stmoz[nmax];
+//Variables for feature collection
+void initOutputFeatures(TTree *t);
+Int_t clszx;
+Int_t clszy;
+Float_t clch;
+Float_t clthe;
+Float_t clpor;
 
 void ClusterProperties(std::string inputFile="ntuple_tracker.root")
 {
@@ -75,72 +83,11 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
   gStyle->SetOptFit(0000);
 
   //Init histograms
-  h["clus_charge"] = new TH1F("clus_charge", "Cluster charge;charge (e^{-});a.u.",
-                              100, 0.0, 50000. );   
+  initHistograms();
 
-  h["clus_charge_path"] = new TH2F("clus_charge_path", "Cluster charge vs true path length;charge (e^{-}); path length (#mu m);a.u.",
-                                    100, 0.0, 50000., 500, 50.0, 550. );   
-
-  h["clus_time"] = new TH1F("clus_time", "Cluster time (TOF #beta=1 corrected); Time (ns); a.u.",
-                            130, -0.3, 1. );
-  h["clus_deltaE"] = new TH1F("clus_deltaE", "Cluster (reco - true) energy; #Delta E (keV); a.u.",
-                              200, -100, 100. );
-  h["clus_posres_x"] = new TH1F("clus_posres_x", "Cluster position X (reco - true); #Delta x (#mu m);a.u.",
-                              100, -50., 50.);
-  h["clus_posres_y"] = new TH1F("clus_posres_y", "Cluster position Y (reco - true); #Delta y (#mu m);a.u.",
-                              100, -50., 50.);
-  h["clus_posres_z"] = new TH1F("clus_posres_z", "Cluster position Z (reco - true); #Delta z (#mu m);a.u.",
-                              100, -50., 50.);
-  h["clus_pos_z_r"] = new TH2F("clus_pos_r_z", "Cluster position in R-Z; Z (mm); R(mm); a.u.",
-                              160, -80.0, 80.0, 110, 0.0, 110.);
-  h["clus_truepos_z_r"] = new TH2F("clus_truepos_r_z", "True Cluster position in R-Z; Z (mm); R(mm); a.u.",
-                                  160, -80.0, 80.0, 110, 0.0, 110.);
-  h["clus_truereco_pos_z"] = new TH2F("clus_truereco_pos_z", "Reco vs True Cluster position in Z; Reco Z (mm); True Z (mm); a.u.",
-                                  160, -80.0, 80.0, 160, -80.0, 80.);
-  h["clus_size_x"] = new TH1F("clus_size_x", "Cluster size in X direction; Size (pixels); a.u.",
-                              50, -0.5, 49.5);
-  h["clus_size_y"] = new TH1F("clus_size_y", "Cluster size in Y direction; Size (pixels); a.u.",
-                              50, -0.5, 49.5);
-  h["clus_size_y_theta"] = new TH2F("clus_sizeY_theta", "Cluster size in Y direction vs #theta; #theta (deg); Size (pixels); a.u.",
-                                    140, 20.0, 160.0, 100, -0.5, 49.5 );
-  //cluster size Y as for different layers (2D) and different layers and eta ranges (1D)
-  for (int layer_range=0; layer_range < 4; layer_range++) {
-    std::string h_name, h_title;
-    h_name = "clus_size_y_theta_dl" + std::to_string(layer_range);
-    h_title = "Cluster size in Y direction vs #theta (double-layer #" + std::to_string(layer_range) + "); #theta (deg); Size (pixels); a.u.";
-    h[h_name] = new TH2F(h_name.c_str(), h_title.c_str(), 140, 20.0, 160.0, 100, -0.5, 49.5 );
-    for (int theta_range=0; theta_range < theta_m90_ranges.size(); theta_range++) {
-      h_name = "clus_size_y_theta_dl" + std::to_string(layer_range) + "_tr" + std::to_string(theta_range);
-      h_title = "Cluster size in Y direction vs #theta (double-layer #" + std::to_string(layer_range) + ", ";
-      h_title = h_title + std::to_string(theta_m90_ranges[theta_range]) + " < |#theta - 90deg| ";
-      if (theta_range < theta_m90_ranges.size()-1)
-        h_title = h_title + "< " + std::to_string(theta_m90_ranges[theta_range+1]);
-      h_title = h_title + "); #theta (deg); Size (pixels); a.u.";
-      h[h_name] = new TH1F(h_name.c_str(), h_title.c_str(), 100, -0.5, 49.5);
-    }
-  }
-  h["hit_charge"] = new TH1F("hit_charge", "Hit Charge;charge (e^{-});a.u.",
-                              100, 0.0, 10000. );
-  h["clus_kept_loose"] = new TH1F("clus_kept_loose", "Percentage Kept (Loose); % of clusters kept; # of events", 
-                              100, -0.5, 100.5);
-  h["clus_kept"] = new TH1F("clus_kept", "Percentage Kept (Tight); % of clusters kept; # of events", 
-                              100, -0.5, 100.5);
-  h["clus_kept_xy"] = new TH2F("clus_kept_xy", "Reco cluster position of kept (tight); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
-                              320, -160.0, 160.0, 320, -160.0, 160.0);
-  h["clus_kept_rz"] = new TH2F("clus_kept_rz", "Reco cluster position of kept (tight); Reco Z (mm);a.u.; Reco R (mm); a.u.", 
-                              160, -80.0, 80.0, 160, -80.0, 80.0);
-  h["clus_lost_xy"] = new TH2F("clus_lost_xy", "Reco cluster position of lost (tight); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
-                              320, -160.0, 160.0, 320, -160.0, 160.0);
-  h["clus_lost_rz"] = new TH2F("clus_lost_rz", "Reco cluster position of lost (tight); Reco Z (mm);a.u.; Reco R (mm); a.u.", 
-                              160, -80.0, 80.0, 160, -80.0, 80.0);
-  h["clus_kept_xy_loose"] = new TH2F("clus_kept_xy_loose", "Reco cluster position X-Y of kept (loose); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
-                              320, -160.0, 160.0, 320, -160.0, 160.0);
-  h["clus_kept_rz_loose"] = new TH2F("clus_kept_rz_loose", "Reco cluster position R-Z of kept (loose); Reco Z (mm);a.u.; Reco R (mm); a.u.", 
-                              160, -80.0, 80.0, 160, -80.0, 80.0);
-  h["clus_lost_xy_loose"] = new TH2F("clus_lost_xy_loose", "Reco cluster position X-Y of lost (loose); Reco X (mm);a.u.; Reco Y (mm); a.u.", 
-                              320, -160.0, 160.0, 320, -160.0, 160.0);
-  h["clus_lost_rz_loose"] = new TH2F("clus_lost_rz_loose", "Reco cluster position R-Z of lost (loose); Reco Z (mm); a.u.; Reco R(mm); a.u.", 
-                              160, -80.0, 80.0, 160, -80.0, 80.0);
+  //Init TTree for feature collection
+  TTree *features = new TTree("FeaturesTree","Features for ML Analysis");
+  initOutputFeatures(features);
 
   float worst_cut = FLT_MAX;
   float worst_cut_loose = FLT_MAX;
@@ -254,6 +201,13 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
           h["clus_lost_rz_loose"]->Fill(thpoz[ic], thpor);
         }
         
+        //Fill the TTree Features
+        clszx = size_x;
+        clszy = size_y;
+        clch = charge;
+        clthe = clus_theta;
+        clpor = thpor;
+        features->Fill();
       } // loop over clusters
       if(ntrh > 0) {
         h["clus_kept"]->Fill(100 * (float)numClusters_size_cut_event / ntrh);
@@ -267,42 +221,13 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
     ih.second->Write();
   }
 
-  //Save Stacks
-  //Kept is red, lost is green
-  THStack *xy_stack_loose = new THStack("xy_stack_loose", "Reco X-Y clusters kept and lost (loose)");
-  h["clus_kept_xy_loose"]->SetFillColor(kRed);
-  h["clus_lost_xy_loose"]->SetFillColor(kGreen);
-  xy_stack_loose->Add(h["clus_kept_xy_loose"]);
-  xy_stack_loose->Add(h["clus_lost_xy_loose"]);
-  xy_stack_loose->Write();
-
-  THStack *xy_stack = new THStack("xy_stack", "Reco X-Y clusters kept and lost (tight)");
-  h["clus_kept_xy"]->SetFillColor(kRed);
-  h["clus_lost_xy"]->SetFillColor(kGreen);
-  xy_stack->Add(h["clus_kept_xy"]);
-  xy_stack->Add(h["clus_lost_xy"]);
-  xy_stack->Write();
-
-  THStack *rz_stack_loose = new THStack("rz_stack_loose", "Reco R-Z clusters kept and lost (loose)");
-  h["clus_kept_rz_loose"]->SetFillColor(kRed);
-  h["clus_lost_rz_loose"]->SetFillColor(kGreen);
-  rz_stack_loose->Add(h["clus_kept_rz_loose"]);
-  rz_stack_loose->Add(h["clus_lost_rz_loose"]);
-  rz_stack_loose->Write();
-
-  THStack *rz_stack = new THStack("rz_stack", "Reco R-Z clusters kept and lost (tight)");
-  h["clus_kept_rz"]->SetFillColor(kRed);
-  h["clus_lost_rz"]->SetFillColor(kGreen);
-  rz_stack->Add(h["clus_kept_rz"]);
-  rz_stack->Add(h["clus_lost_rz"]);
-  rz_stack->Write();
-
-//Replaced by average of clus_kept and clus_kept_loose histograms.
+//Efficiency is average of clus_kept and clus_kept_loose histograms.
   std::cout << "Cluster filter: " << std::endl;
   std::cout << "Tight cut: " << h["clus_kept"]->GetMean() << std::endl;
   std::cout << "Loose cut: " << h["clus_kept_loose"]->GetMean() << std::endl;
 }
 
+/* Initializes the branches that are pulled from during analysis. */
 void initBranches(TTree *t) 
 {
   t->SetBranchAddress("ntrh", &ntrh);
@@ -329,4 +254,95 @@ void initBranches(TTree *t)
   t->SetBranchAddress("stmox", stmox);
   t->SetBranchAddress("stmoy", stmoy);
   t->SetBranchAddress("stmoz", stmoz);
+}
+
+/* Initializes histograms on the global histogram map which stores them. */
+void initHistograms()
+{
+  h["clus_charge"] = new TH1F("clus_charge", "Cluster charge;charge (e^{-});a.u.",
+                              100, 0.0, 50000. );   
+
+  h["clus_charge_path"] = new TH2F("clus_charge_path", "Cluster charge vs true path length;charge (e^{-}); path length (#mu m);a.u.",
+                              100, 0.0, 50000., 500, 50.0, 550. );   
+
+  h["clus_time"] = new TH1F("clus_time", "Cluster time (TOF #beta=1 corrected); Time (ns); a.u.",
+                              130, -0.3, 1. );
+  h["clus_deltaE"] = new TH1F("clus_deltaE", "Cluster (reco - true) energy; #Delta E (keV); a.u.",
+                              200, -100, 100. );
+  h["clus_posres_x"] = new TH1F("clus_posres_x", "Cluster position X (reco - true); #Delta x (#mu m);a.u.",
+                              100, -50., 50.);
+  h["clus_posres_y"] = new TH1F("clus_posres_y", "Cluster position Y (reco - true); #Delta y (#mu m);a.u.",
+                              100, -50., 50.);
+  h["clus_posres_z"] = new TH1F("clus_posres_z", "Cluster position Z (reco - true); #Delta z (#mu m);a.u.",
+                              100, -50., 50.);
+  h["clus_pos_z_r"] = new TH2F("clus_pos_r_z", "Cluster position in R-Z; Z (mm); R(mm); a.u.",
+                              160, -80.0, 80.0, 110, 0.0, 110.);
+  h["clus_truepos_z_r"] = new TH2F("clus_truepos_r_z", "True Cluster position in R-Z; Z (mm); R(mm); a.u.",
+                              160, -80.0, 80.0, 110, 0.0, 110.);
+  h["clus_truereco_pos_z"] = new TH2F("clus_truereco_pos_z", "Reco vs True Cluster position in Z; Reco Z (mm); True Z (mm); a.u.",
+                              160, -80.0, 80.0, 160, -80.0, 80.);
+  h["clus_size_x"] = new TH1F("clus_size_x", "Cluster size in X direction; Size (pixels); a.u.",
+                              50, -0.5, 49.5);
+  h["clus_size_y"] = new TH1F("clus_size_y", "Cluster size in Y direction; Size (pixels); a.u.",
+                              50, -0.5, 49.5);
+  h["clus_size_y_theta"] = new TH2F("clus_sizeY_theta", "Cluster size in Y direction vs #theta; #theta (deg); Size (pixels); a.u.",
+                              140, 20.0, 160.0, 100, -0.5, 49.5 );
+  //cluster size Y as for different layers (2D) and different layers and eta ranges (1D)
+  for (int layer_range=0; layer_range < 4; layer_range++) {
+    std::string h_name, h_title;
+    h_name = "clus_size_y_theta_dl" + std::to_string(layer_range);
+    h_title = "Cluster size in Y direction vs #theta (double-layer #" + std::to_string(layer_range) + "); #theta (deg); Size (pixels); a.u.";
+    h[h_name] = new TH2F(h_name.c_str(), h_title.c_str(), 140, 20.0, 160.0, 100, -0.5, 49.5 );
+    for (int theta_range=0; theta_range < theta_m90_ranges.size(); theta_range++) {
+      h_name = "clus_size_y_theta_dl" + std::to_string(layer_range) + "_tr" + std::to_string(theta_range);
+      h_title = "Cluster size in Y direction vs #theta (double-layer #" + std::to_string(layer_range) + ", ";
+      h_title = h_title + std::to_string(theta_m90_ranges[theta_range]) + " < |#theta - 90deg| ";
+      if (theta_range < theta_m90_ranges.size()-1)
+        h_title = h_title + "< " + std::to_string(theta_m90_ranges[theta_range+1]);
+      h_title = h_title + "); #theta (deg); Size (pixels); a.u.";
+      h[h_name] = new TH1F(h_name.c_str(), h_title.c_str(), 100, -0.5, 49.5);
+    }
+  }
+  h["hit_charge"] = new TH1F("hit_charge", "Hit Charge;charge (e^{-});a.u.",
+                              100, 0.0, 10000. );
+  h["clus_kept_loose"] = new TH1F("clus_kept_loose", "Percentage Kept (Loose); % of clusters kept; # of events", 
+                              100, -0.5, 100.5);
+  h["clus_kept"] = new TH1F("clus_kept", "Percentage Kept (Tight); % of clusters kept; # of events", 
+                              100, -0.5, 100.5);
+  h["clus_kept_xy"] = new TH2F("clus_kept_xy", "Reco cluster position of kept (tight); Reco X (mm); Reco Y (mm)", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_kept_rz"] = new TH2F("clus_kept_rz", "Reco cluster position of kept (tight); Reco Z (mm); Reco R (mm)", 
+                              160, -80.0, 80.0, 110, 0.0, 110.);
+  h["clus_lost_xy"] = new TH2F("clus_lost_xy", "Reco cluster position of lost (tight); Reco X (mm); Reco Y (mm)", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_lost_rz"] = new TH2F("clus_lost_rz", "Reco cluster position of lost (tight); Reco Z (mm); Reco R (mm)", 
+                              160, -80.0, 80.0, 110, 0.0, 110.);
+  h["clus_kept_xy_loose"] = new TH2F("clus_kept_xy_loose", "Reco cluster position X-Y of kept (loose); Reco X (mm); Reco Y (mm)", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_kept_rz_loose"] = new TH2F("clus_kept_rz_loose", "Reco cluster position R-Z of kept (loose); Reco Z (mm); Reco R (mm);", 
+                              160, -80.0, 80.0, 110, 0.0, 110.);
+  h["clus_lost_xy_loose"] = new TH2F("clus_lost_xy_loose", "Reco cluster position X-Y of lost (loose); Reco X (mm); Reco Y (mm)", 
+                              320, -160.0, 160.0, 320, -160.0, 160.0);
+  h["clus_lost_rz_loose"] = new TH2F("clus_lost_rz_loose", "Reco cluster position R-Z of lost (loose); Reco Z (mm); Reco R(mm)", 
+                              160, -80.0, 80.0, 110, 0.0, 110.);
+}
+
+/* Initializes the branches for a tree t to hold features needed for ML classification.
+ * The clusters in each event are flattened into one array for each feature.
+ * Currently, the following branches are made:
+ *  - Cluster size X "clszX"
+ *  - Cluster size Y "clszY"
+ *  - Cluster Charge "clch"
+ *  - Cluster Theta (Reconstructed) "clthe"
+ *  - Cluster R (Reconstructed) "clpor"
+ *  Future ideas:
+ *  - Cluster time delta
+ */
+void initOutputFeatures(TTree *t) 
+{
+  t->Branch("clszx", &clszx);
+  t->Branch("clszy", &clszy);
+  t->Branch("clch", &clch);
+  t->Branch("clthe", &clthe);
+  t->Branch("clpor", &clpor);
 }
