@@ -65,7 +65,8 @@ Float_t clch;
 Float_t clthe;
 Float_t clpor;
 
-void ClusterProperties(std::string inputFile="ntuple_tracker.root")
+//Feature Layer selects the nth pair of layers for feature analysis.
+void ClusterProperties(std::string inputFile="ntuple_tracker.root", int featureLayer=0)
 {
 
   TFile *fin = TFile::Open(inputFile.c_str());
@@ -203,12 +204,14 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
         }
         
         //Fill the TTree Features
-        clszx = size_x;
-        clszy = size_y;
-        clch = charge;
-        clthe = clus_theta;
-        clpor = thpor;
-        features->Fill();
+        if (layer == featureLayer) {
+          clszx = size_x;
+          clszy = size_y;
+          clch = charge;
+          clthe = clus_theta;
+          clpor = thpor;
+          features->Fill();
+        }
       } // loop over clusters
       if(ntrh > 0) {
         h["clus_kept"]->Fill(100 * (float)numClusters_size_cut_event / ntrh);
