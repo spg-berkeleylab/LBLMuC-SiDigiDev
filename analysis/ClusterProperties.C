@@ -86,6 +86,7 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
   initHistograms();
 
   //Init TTree for feature collection
+  TFile *featureFile = TFile::Open("features.root", "RECREATE");
   TTree *features = new TTree("FeaturesTree","Features for ML Analysis");
   initOutputFeatures(features);
 
@@ -215,6 +216,9 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root")
       }
   } // loop over events
 
+  //Save and Close feature outFile:
+  featureFile->Write();
+  featureFile->Close();
   //Save histograms
   TFile *outROOT = TFile::Open("analysis.root", "RECREATE");
   for (auto ih : h) {
