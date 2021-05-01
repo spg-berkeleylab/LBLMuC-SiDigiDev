@@ -2,114 +2,118 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import uproot as ur
-from sklearn import svm
-from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
 #%matplotlib inline
 # %%
-nobibFile = ur.open("./runs/10GeV-no-bib/ntuple_tracker.root")
-nobibTuple = nobibFile["MyLCTuple"]
-bibFile = ur.open("./runs/10GeV-bib/ntuple_tracker.root")
-bibTuple = bibFile["MyLCTuple"]
+nobibFile = ur.open("no-bib-features.root")
+nobibTuple = nobibFile["FeaturesTree"]
+bibFile = ur.open("bib-features.root")
+bibTuple = bibFile["FeaturesTree"]
 # %%
 def createFeaturesMatrix(ttree):
     """
-    Creates an n x 4 ndarray where n is the amount of clusters in the ttree.
+    Creates an n x 5 ndarray where n is the amount of clusters in the ttree.
     The ndarray has data along its rows.
     """
-    # For training purposes, scale of charge doesn't matter
-    featureBranches = ['thpox', 'thpoy', 'thpoz', 'thedp']
-    rawFeatures = len(featureBranches)
-    mapFeatures = list(map(lambda a: np.concatenate(a), ttree.arrays(expressions=featureBranches, library='np').values()))
-    # Feature branches + 2 size features + 1 theta feature. Can be adjusted for more features
-    features = np.empty((rawFeatures + 2 + 1, len(mapFeatures[0])))
-    features[:rawFeatures,:] = np.array(mapFeatures)
-    
-    #Cluster size features computed separately
-    ntrhs = ttree["ntrh"].array(library='np')
-    thcidx = ttree["thcidx"].array(library='np')
-    thclen = ttree["thclen"].array(library='np')
-    tcrp0 = ttree["tcrp0"].array(library='np')
-    tcrp1 = ttree["tcrp1"].array(library='np')
-
-    total_index = 0
-    for (ie, ntrh) in enumerate(ntrhs):
-        for ic in range(ntrh):
-            idx = thcidx[ie][ic]
-            ln = thclen[ie][ic]
-            minX = min(tcrp0[ie][idx:idx + ln])
-            maxX = max(tcrp0[ie][idx:idx + ln])
-            minY = min(tcrp0[ie][idx:idx + ln])
-            maxY = max(tcrp0[ie][idx:idx + ln])
-            features[rawFeatures:rawFeatures+2, total_index] = np.array([maxX - minX + 1,maxY - minY + 1])
-            total_index += 1
-
-    #Theta branch. We can also add r later
-    poy = features[1, :] 
-    poz = features[2, :]
-    np.arctan(poy * (poz ** -1), out=features[-1, :])
-    np.add(features[-1, :], np.pi, out=features[-1, :], where=features[-1, :]<0)
-    # Calculate abs(theta - 90 deg)
-    # np.add(features[-1, :], - np.pi / 2, out=features[-1, :])
-    # np.abs(features[-1, :], out=features[-1, :])
-    #pox, poy, poz didn't help data
-    features = features[3:,:]
-    # Theta, X,Y size, Energy
-    features = np.transpose(features)
-    np.random.shuffle(features)
+    featureBranches = ['clszx', 'clszy', 'clch', 'clthe', 'clpor']
+    features = np.transpose(np.array(list(ttree.arrays(expressions=featureBranches, library='np').values())))
     return features
 # %%
-single_mu_data = createFeaturesMatrix(nobibTuple)
+signal_data = createFeaturesMatrix(nobibTuple)
 bib_data = createFeaturesMatrix(bibTuple)
+
 # %%
-#Plot y cluster size vs. theta
+#Plot y cluster size vs. theta as a sanity check
 fig = plt.figure(figsize = (20,5))
 fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, figsize=(10,5))
 ax1.set(ylim = (0, 45))
 ax2.set(ylim = (0, 45))
-ax1.scatter(bib_data[:5000,-1],bib_data[:5000,-2], s=1)
+ax1.scatter(bib_data[:5000,3],bib_data[:5000,1], s=1)
 ax1.set_ylabel("Y cluster size")
 ax1.set_xlabel("Theta of cluster")
-ax2.scatter(single_mu_data[:5000,-1],single_mu_data[:5000,-2], s=1)
+ax2.scatter(signal_data[:5000,3],signal_data[:5000,1], s=1)
 ax2.set_ylabel("Y cluster size")
 ax2.set_xlabel("Theta of cluster")
-plt.suptitle("Y cluster size vs Theta (Left BIB, Right single mu)")
+plt.suptitle("Y cluster size vs Theta (Left BIB, Right signal)")
 plt.tight_layout()
 # %%
 training_ratio = 0.6
-#Everything in [0, split_mu) used for training
-#This can also serve as an indicator between a point being bib or not.
-split_mu = round(training_ratio * np.shape(single_mu_data)[0])
-#correct for bib being much more data than non-bib
-split_bib = split_mu
-single_training = single_mu_data[:split_mu,:]
+split_signal = round(training_ratio * np.shape(signal_data)[0])
+split_bib = round(training_ratio * np.shape(bib_data)[0])
+signal_training = signal_data[:split_signal,:]
 bib_training = bib_data[:split_bib,:]
-training_data = np.vstack([single_training, bib_training])
-training_data = StandardScaler().fit_transform(training_data)
+# non_bib weighted by frequency, bib kept at 0
+
+labels = torch.FloatTensor((np.hstack([np.ones(split_signal), np.zeros(split_bib)]))).unsqueeze(-1)
+training_data = np.vstack([signal_training, bib_training])
+#shuffle the data and labels with the same seed
+seed = np.random.randint(0, 2**(16))
+np.random.seed(seed)
+np.random.shuffle(training_data)
+np.random.seed(seed)
+np.random.shuffle(labels)
+
+#normalize data (is this needed?)
+training_data = MinMaxScaler().fit_transform(training_data)
 # %%
-PCA_data = PCA(n_components=2).fit_transform(training_data)
+class Net(nn.Module):
+    """
+    Neural network to compute classification for BIB vs signal. 
+    4-layer neural network
+    5 - 5 - 3 - 1
+    """
+
+    def __init__(self):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(5, 5)
+        self.fc2 = nn.Linear(5, 3)
+        self.fc3 = nn.Linear(3, 1)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = torch.sigmoid(self.fc3(x))
+        return x
+
+    #backprop is automatically made by PyTorch
 # %%
-single_mu_pca = PCA_data[:split_mu, :]
-bib_pca = PCA_data[split_mu:, :]
-plt.figure(figsize = (10, 5))
-fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10,5))
-ax1.set(xlim = (-1, 2))
-ax2.set(xlim = (-1, 2))
-plt.suptitle("Clusters in PCA basis")
-ax1.scatter(single_mu_pca[:,0], single_mu_pca[:,1], s=1, c=['red'])
-ax1.legend(['Single Mu'])
-ax2.scatter(bib_pca[:, 0], bib_pca[:, 1], s=1, c=['green'])
-ax2.legend(['BIB'])
-ax1.set_xlabel("Projection onto 1st P.C.")
-ax2.set_xlabel("Projection onto 1st P.C.")
-ax1.set_ylabel("Projection onto 2nd P.C.")
-ax2.set_ylabel("Projection onto 2nd P.C.")
-plt.tight_layout()
-# %%
-CUT = 0.0
-print(f"Single Mu Cut Efficiency (Training): {np.count_nonzero(PCA_data[:split_mu, 0] < CUT) / split_mu}")
-print(f"BIB Cut Efficiency (Training): {np.count_nonzero(PCA_data[split_mu:, 0] < CUT) / split_bib}")
-# %%
+classifier = Net()
+optimizer = optim.SGD(classifier.parameters(), lr=0.01)
+#create class weights corresponding to bib and signal
+total_data = split_signal + split_bib
+class_weights = torch.FloatTensor([total_data / (2.0 * split_signal), total_data / (2.0 * split_bib)])
+criterion = nn.BCELoss(weight=class_weights)
+
+losses = []
+def run_training_step(batch_begin, batch_end):
+    """
+    Runs the training loop on the row in the indices between the two arguments:
+    [batch_begin, batch_end)
+    """
+    optimizer.zero_grad()   # zero the gradient buffers
+    batch = torch.FloatTensor(training_data[batch_begin:batch_end,:])
+    output = classifier(batch)
+    target = labels[batch_begin:batch_end]
+    print(f"Shape of output: {np.shape(output)}")
+    print(f"Shape of target: {np.shape(target)}")
+    loss = criterion(output, target)
+    loss.backward()
+    optimizer.step()
+    losses.append(loss.item())
+
+# training loop
+BATCH_SIZE = 32
+                #total_data
+for it in range(0, 32, BATCH_SIZE):
+    run_training_step(it, it + BATCH_SIZE)
+
+if it < total_data:
+    run_training_step(it, total_data)
 # %%
 # First two layers only
 # 1. Improving separation
