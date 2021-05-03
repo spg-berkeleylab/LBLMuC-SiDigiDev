@@ -189,10 +189,10 @@ def run_testing_step(batch_begin, batch_end):
     [batch_begin, batch_end)
     Returns tuple: (# of signal kept, # of total signal, # of BIB kept, # of total BIB) in the batch
     """
-    batch = torch.tensor(test_data[batch_begin:batch_end]).float()
+    batch = torch.tensor(training_data[batch_begin:batch_end]).float()
     output = F.softmax(classifier(batch), dim=-1)
     pred_classes = torch.argmax(output, dim=1)
-    true_labels = labels_test[batch_begin:batch_end]
+    true_labels = labels[batch_begin:batch_end]
     actual_signal = (true_labels == 1)
     actual_bib = (true_labels == 0)
     kept = (pred_classes == 1)
@@ -204,7 +204,8 @@ def run_testing_step(batch_begin, batch_end):
     bib_kept = torch.count_nonzero(actual_bib & kept).item()
     return signal_kept, total_signal, bib_kept, total_bib
 
-last_ind = test_signal_n + test_bib_n
+#last_ind = test_signal_n + test_bib_n
+last_ind = total_data
 total_signal_kept, total_overall_signal, total_bib_kept, total_overall_bib = 0, 0, 0, 0
 for it in range(0, last_ind, BATCH_SIZE):
     signal_kept, total_signal, bib_kept, total_bib = run_testing_step(it, it + BATCH_SIZE)
@@ -219,9 +220,19 @@ print(f"Cut Efficiency (Signal): {signal_eff}")
 print(f"Cut Efficiency (BIB): {bib_eff}")
 # %%
 # Plot the probability that the classifier thinks each test sample is signal.
-plt.title("Prediction of signal")
-plt.hist(bib_hot)
-plt.axvline(x=0.5, color='r')
-plt.xlabel("Probability of being signal")
+plt.title("Prediction of signal from BIB")
+plt.hist([bib_hot[i] for i in range(len(bib_hot)) if labels[i] == 0])
+# plt.axvline(x=0.5, color='r')
+plt.xlabel("Probability of BIB being signal")
 plt.ylabel("Number at that probability")
 plt.show()
+
+
+# %%
+plt.title("Prediction of signal from signal")
+plt.hist([bib_hot[i] for i in range(len(bib_hot)) if labels[i] == 1])
+# plt.axvline(x=0.5, color='r')
+plt.xlabel("Probability of signal being signal")
+plt.ylabel("Number at that probability")
+plt.show()
+
