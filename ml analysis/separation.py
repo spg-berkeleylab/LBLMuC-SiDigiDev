@@ -6,99 +6,118 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.decomposition import PCA
+from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
+from torch.utils.data import random_split
+from sklearn.preprocessing import StandardScaler
 #%matplotlib inline
-# %%
-nobibFile = ur.open("no-bib-features.root")
-nobibTuple = nobibFile["FeaturesTree"]
-bibFile = ur.open("bib-features.root")
-bibTuple = bibFile["FeaturesTree"]
-# %%
-def createFeaturesMatrix(ttree):
-    """
-    Creates an n x 5 ndarray where n is the amount of clusters in the ttree.
-    The ndarray has data along its rows.
-    """
-    featureBranches = ['clszx', 'clszy', 'clch', 'clthe', 'clpor']
-    features = np.transpose(np.array(list(ttree.arrays(expressions=featureBranches, library='np').values())))
-    return features
-# %%
-signal_data = createFeaturesMatrix(nobibTuple)
-bib_data = createFeaturesMatrix(bibTuple)
 
 # %%
-#Plot y cluster size vs. theta as a sanity check
-fig = plt.figure(figsize = (20,5))
-fig, (ax1, ax2) = plt.subplots(1,2, sharex=True, figsize=(10,5))
-ax1.set(ylim = (0, 45))
-ax2.set(ylim = (0, 45))
-ax1.scatter(bib_data[:5000,3],bib_data[:5000,1], s=1)
-ax1.set_ylabel("Y cluster size")
-ax1.set_xlabel("Theta of cluster")
-ax2.scatter(signal_data[:5000,3],signal_data[:5000,1], s=1)
-ax2.set_ylabel("Y cluster size")
-ax2.set_xlabel("Theta of cluster")
-plt.suptitle("Y cluster size vs Theta (Left BIB, Right signal)")
-plt.tight_layout()
+class InputData(Dataset):
+    """
+    Creates a labeled dataset from the bibFilename and noBibFilename root files specified.
+    Optionally include a transform to be applied on the data.
+    """
+    def __init__(self, bibFilename="bib-features.root", nobibFilename="no-bib-features.root"):
+        bibFile = ur.open(bibFilename)
+        bibTuple = bibFile["FeaturesTree"]
+        nobibFile = ur.open(nobibFilename)
+        nobibTuple = nobibFile["FeaturesTree"]
+        
+        bib_data = InputData.createFeaturesMatrix(bibTuple)
+        signal_data = InputData.createFeaturesMatrix(nobibTuple)
+        self.data = torch.vstack([signal_data, bib_data])
+        self.labels = torch.hstack([torch.ones(signal_data.shape[0]), \
+                                    torch.zeros(bib_data.shape[0])])
+
+    def __len__(self):
+        return self.data.shape[0]
+        
+    def __getitem__(self, idx):
+        features, label = self.data[idx, :], self.labels[idx]
+        return (features, label)
+
+    @staticmethod
+    def createFeaturesMatrix(ttree):
+        """
+        Creates an n x 5 ndarray where n is the amount of clusters in the ttree.
+        The ndarray has data along its rows.
+        """
+        featureBranches = ['clszx', 'clszy', 'clch', 'clthe', 'clpor']
+        rows = ttree.arrays(expressions=featureBranches, library='np').values()
+        features_along_cols = torch.Tensor(list(rows))
+        features = torch.transpose(features_along_cols, 0, 1)
+        return features
+
 # %%
-#create training data: TODO use torch's dataset classes
+class TransformableSubset(InputData):
+    """
+    Takes a dataset and a set of indices and creates a subset.
+    Can also be transformed by a standardized transform.
+    """
+    def __init__(self, dataset, indices):
+        self.dataset = dataset
+        self.indices = indices
+
+    def __len__(self):
+        return len(self.indices)
+    
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
+
+    def fit(self):
+        """
+        Create and return a StandardScaler fitting the data in this subset.
+        """
+        scaler = StandardScaler()
+        data_tensor = torch.Tensor(len(self.indices), self.dataset[0][0].shape[-1])
+        for (row, idx) in enumerate(self.indices):
+            data_tensor[row] = self.dataset[idx][0]
+        scaler.fit(data_tensor)
+        return scaler
+
+class StandardTransform(object):
+    """
+    Takes in a mean and stdev and then standardizing the data which those stats come from,
+    normalizing it to have 0 mean and unit variance.
+
+    Args:
+        mean (sequence): sequence of means of each feature.
+        scale (sequence): sequence of stddevs of each feature.
+    """
+    def __init__(self, mean, scale):
+        self.mean = torch.Tensor(mean)
+        self.scale = torch.Tensor(scale)
+
+    def __call__(self, sample):
+        return (sample - self.mean)/self.scale
+
+# %%
+data = InputData()
+# ratio of training : total
 training_ratio = 0.5
-split_signal = int(np.ceil(training_ratio * np.shape(signal_data)[0]))
-split_bib = int(np.ceil(training_ratio * np.shape(bib_data)[0]))
-signal_training = signal_data[:split_signal,:]
-bib_training = bib_data[:split_bib,:]
-#signal is 1s, bib is 0s
-labels = torch.tensor((np.hstack([np.ones(split_signal), np.zeros(split_bib)]))).long()
-training_data = torch.tensor(np.vstack([signal_training, bib_training])).float()
-#shuffle the data and labels with the same seed
-seed = np.random.randint(0, 2**(16))
-np.random.seed(seed)
-np.random.shuffle(training_data)
-np.random.seed(seed)
-np.random.shuffle(labels)
-
-#normalize data (is this needed?)
-scaler = MinMaxScaler()
-training_data = scaler.fit_transform(training_data)
+# ratio of validation : total
+val_ratio = 0.25
+len_train, len_val = round(0.5 * len(data)), round(0.25 * len(data))
+len_test = len(data) - len_train - len_val
+# indices inhabited by each set
+train_ind, val_ind, test_ind = random_split(np.arange(len(data)), [len_train, len_val, len_test])
+train_set = TransformableSubset(data, train_ind)
+# fit the transform to the train_set, but transform all the data
+scaler = train_set.fit()
+transform = StandardTransform(scaler.mean_, scaler.scale_)
+print(f"Data before normalization: {data.data}")
+data.data = transform(data.data)
+print(f"Data after normalization: {data.data}")
 
 # %%
-#create validation data
-valid_ratio = 0.5
-val_split_ratio = training_ratio + (1 - training_ratio) * valid_ratio
-val_signal = int(np.ceil(val_split_ratio * np.shape(signal_data)[0]))
-val_bib = int(np.ceil(val_split_ratio * np.shape(bib_data)[0]))
-signal_val = signal_data[split_signal:val_signal,:]
-bib_val = bib_data[split_bib:val_bib,:]
-val_signal_n = np.shape(signal_test)[0]
-val_bib_n = np.shape(bib_test)[0]
-labels_val = torch.tensor((np.hstack([np.ones(val_signal_n), np.zeros(val_bib_n)]))).long()
-val_data = torch.tensor(np.vstack([signal_val, bib_val])).float()
-seed = np.random.randint(0, 2**(16))
-np.random.seed(seed)
-np.random.shuffle(val_data)
-np.random.seed(seed)
-np.random.shuffle(labels_val)
-
-#normalize data with the same scaling as the training data.
-val_data = scaler.transform(val_data)
-
-# %%
-#create test data: 
-signal_test = signal_data[val_signal:,:]
-bib_test = bib_data[val_bib:,:]
-test_signal_n = np.shape(signal_test)[0]
-test_bib_n = np.shape(bib_test)[0]
-labels_test = torch.tensor((np.hstack([np.ones(test_signal_n), np.zeros(test_bib_n)]))).long()
-test_data = torch.tensor(np.vstack([signal_test, bib_test])).float()
-seed = np.random.randint(0, 2**(16))
-np.random.seed(seed)
-np.random.shuffle(test_data)
-np.random.seed(seed)
-np.random.shuffle(labels_test)
-
-#normalize data with the same scaling as the training data.
-test_data = scaler.transform(test_data)
+#Create samplers to randomly sample the data
+train_sampler = SubsetRandomSampler(data, train_ind)
+val_sampler = SubsetRandomSampler(data, val_ind)
+test_sampler = SubsetRandomSampler(data, test_ind)
+#Use data-loaders to create iterables
+train_load = DataLoader(data, batch_size=32, sampler=train_sampler)
+val_load = DataLoader(data, batch_size=16, sampler=val_sampler)
+test_load = DataLoader(data, batch_size=16, sampler=test_sampler)
 # %%
 class Net(nn.Module):
     """
@@ -189,10 +208,10 @@ def run_testing_step(batch_begin, batch_end):
     [batch_begin, batch_end)
     Returns tuple: (# of signal kept, # of total signal, # of BIB kept, # of total BIB) in the batch
     """
-    batch = torch.tensor(training_data[batch_begin:batch_end]).float()
+    batch = torch.tensor(test_data[batch_begin:batch_end]).float()
     output = F.softmax(classifier(batch), dim=-1)
     pred_classes = torch.argmax(output, dim=1)
-    true_labels = labels[batch_begin:batch_end]
+    true_labels = labels_test[batch_begin:batch_end]
     actual_signal = (true_labels == 1)
     actual_bib = (true_labels == 0)
     kept = (pred_classes == 1)
