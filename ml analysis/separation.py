@@ -26,8 +26,10 @@ class InputData(Dataset):
         bib_data = InputData.createFeaturesMatrix(bibTuple)
         signal_data = InputData.createFeaturesMatrix(nobibTuple)
         self.data = torch.vstack([signal_data, bib_data])
-        self.labels = torch.hstack([torch.ones(signal_data.shape[0]), \
-                                    torch.zeros(bib_data.shape[0])])
+        self.num_sig = signal_data.shape[0]
+        self.num_bib = bib_data.shape[0]
+        self.labels = torch.hstack([torch.ones(self.num_sig), \
+                                    torch.zeros(self.num_bib)]).long()
 
     def __len__(self):
         return self.data.shape[0]
@@ -47,6 +49,8 @@ class InputData(Dataset):
         features_along_cols = torch.Tensor(list(rows))
         features = torch.transpose(features_along_cols, 0, 1)
         return features
+
+
 
 # %%
 class TransformableSubset(InputData):
@@ -89,7 +93,7 @@ class StandardTransform(object):
         self.scale = torch.Tensor(scale)
 
     def __call__(self, sample):
-        return (sample - self.mean)/self.scale
+        return (sample - self.mean) / self.scale
 
 # %%
 data = InputData()
@@ -101,6 +105,7 @@ len_train, len_val = round(0.5 * len(data)), round(0.25 * len(data))
 len_test = len(data) - len_train - len_val
 # indices inhabited by each set
 train_ind, val_ind, test_ind = random_split(np.arange(len(data)), [len_train, len_val, len_test])
+train_ind, val_ind, test_ind = list(train_ind), list(val_ind), list(test_ind)
 train_set = TransformableSubset(data, train_ind)
 # fit the transform to the train_set, but transform all the data
 scaler = train_set.fit()
@@ -111,9 +116,9 @@ print(f"Data after normalization: {data.data}")
 
 # %%
 #Create samplers to randomly sample the data
-train_sampler = SubsetRandomSampler(data, train_ind)
-val_sampler = SubsetRandomSampler(data, val_ind)
-test_sampler = SubsetRandomSampler(data, test_ind)
+train_sampler = SubsetRandomSampler(train_ind)
+val_sampler = SubsetRandomSampler(val_ind)
+test_sampler = SubsetRandomSampler(test_ind)
 #Use data-loaders to create iterables
 train_load = DataLoader(data, batch_size=32, sampler=train_sampler)
 val_load = DataLoader(data, batch_size=16, sampler=val_sampler)
@@ -141,51 +146,36 @@ class Net(nn.Module):
     #backprop is automatically made by PyTorch
 # %%
 classifier = Net()
-optimizer = optim.SGD(classifier.parameters(), lr=0.01)
+optimizer = optim.SGD(classifier.parameters(), lr=0.05)
 #create class weights corresponding to bib and signal
 #0 is bib, 1 is signal
-total_data = split_signal + split_bib
-class_weights = torch.FloatTensor([total_data / (2.0 * split_bib), total_data / (2.0 * split_signal)])
+class_weights = torch.FloatTensor([len(data) / (2.0 * data.num_bib), len(data) / (2.0 * data.num_sig)])
 criterion = nn.CrossEntropyLoss(weight=class_weights)
-
-training_losses = []
-def run_training_step(batch_begin, batch_end):
-    """
-    Runs the training loop on the row in the indices between the two arguments:
-    [batch_begin, batch_end)
-    """
-    optimizer.zero_grad()   # zero the gradient buffers
-    batch = torch.tensor(training_data[batch_begin:batch_end]).float()
-    output = classifier(batch)
-    target = labels[batch_begin:batch_end]
-    loss = criterion(output, target)
-    loss.backward()
-    optimizer.step()
-    training_losses.append(loss.item())
-
-validation_losses = []
-def run_validation_step(batch_begin, batch_end):
-    """
-    Runs a validation loop on the row in the indices between the two arguments:
-    [batch_begin, batch_end)
-    """
-    batch = torch.tensor(val_data[batch_begin:batch_end]).float()
-    output = classifier(batch)
-    target = labels_val[batch_begin:batch_end]
-    loss = criterion(output, target)
-    validation_losses.append(loss.item())
 # %%
+training_losses = []
+validation_losses = []
 # training loop
-TRAINING_BATCH_SIZE = 32
-VALIDATION_BATCH_SIZE = 16
-EPOCHS = 1200 #2000 epochs seemed to make it converge
-for epoch in range(0, EPOCHS):
-    training_ind = epoch * TRAINING_BATCH_SIZE
-    run_training_step(training_ind, training_ind + TRAINING_BATCH_SIZE)
-    valid_ind = epoch * VALIDATION_BATCH_SIZE
-    run_validation_step(valid_ind, valid_ind + VALIDATION_BATCH_SIZE)
+MAX_EPOCHS = 5000
+train_iter = iter(train_load)
+val_iter = iter(val_load)
+for epoch in range(MAX_EPOCHS):
+    try:
+        samples_batched, labels_batched = next(train_iter)
+        optimizer.zero_grad()   # zero the gradient buffers
+        output = classifier(samples_batched)
+        loss = criterion(output, labels_batched)
+        loss.backward()
+        optimizer.step()
+        training_losses.append(loss.item())
 
-#if using all of the data, could have extra, smaller batch at the end
+        with torch.set_grad_enabled(False):
+            samples_batched, labels_batched = next(val_iter)
+            output = classifier(samples_batched)
+            loss = criterion(output, labels_batched)
+            validation_losses.append(loss.item())
+    except StopIteration:
+        print("Ran out of samples")
+        break
 # %%
 #Plot training loss
 plt.plot(range(len(training_losses)), training_losses)
@@ -201,57 +191,41 @@ plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.show()
 # %%
-bib_hot = []
-def run_testing_step(batch_begin, batch_end):
-    """
-    Runs the testing step on the row in the indices between the two arguments:
-    [batch_begin, batch_end)
-    Returns tuple: (# of signal kept, # of total signal, # of BIB kept, # of total BIB) in the batch
-    """
-    batch = torch.tensor(test_data[batch_begin:batch_end]).float()
-    output = F.softmax(classifier(batch), dim=-1)
+false_signal = []
+true_signal = []
+signal_kept, total_signal, bib_kept, total_bib = 0, 0, 0, 0
+for samples_batched, labels_batched in train_load:
+    output = F.softmax(classifier(samples_batched), dim=-1)
     pred_classes = torch.argmax(output, dim=1)
-    true_labels = labels_test[batch_begin:batch_end]
+    true_labels = labels_batched
     actual_signal = (true_labels == 1)
     actual_bib = (true_labels == 0)
     kept = (pred_classes == 1)
-    bib_hot.extend([p[1].item() for p in output])
+    false_signal.extend([output[i][1].item() for i in range(len(output)) if true_labels[i] == 0])
+    true_signal.extend([output[i][1].item() for i in range(len(output)) if true_labels[i] == 1])
 
-    total_signal = torch.count_nonzero(actual_signal).item()
-    signal_kept = torch.count_nonzero(actual_signal & kept).item()
-    total_bib = torch.count_nonzero(actual_bib).item()
-    bib_kept = torch.count_nonzero(actual_bib & kept).item()
-    return signal_kept, total_signal, bib_kept, total_bib
+    total_signal += torch.count_nonzero(actual_signal).item()
+    signal_kept += torch.count_nonzero(np.logical_and(actual_signal, kept)).item()
+    total_bib += torch.count_nonzero(actual_bib).item()
+    bib_kept += torch.count_nonzero(np.logical_and(actual_bib, kept)).item()
 
-#last_ind = test_signal_n + test_bib_n
-last_ind = total_data
-total_signal_kept, total_overall_signal, total_bib_kept, total_overall_bib = 0, 0, 0, 0
-for it in range(0, last_ind, BATCH_SIZE):
-    signal_kept, total_signal, bib_kept, total_bib = run_testing_step(it, it + BATCH_SIZE)
-    total_signal_kept += signal_kept
-    total_bib_kept += bib_kept
-    total_overall_signal += total_signal
-    total_overall_bib += total_bib
-
-signal_eff = total_signal_kept / total_overall_signal
-bib_eff = total_bib_kept / total_overall_bib
+signal_eff = signal_kept / total_signal
+bib_eff = bib_kept / total_bib
 print(f"Cut Efficiency (Signal): {signal_eff}")
 print(f"Cut Efficiency (BIB): {bib_eff}")
 # %%
 # Plot the probability that the classifier thinks each test sample is signal.
 plt.title("Prediction of signal from BIB")
-plt.hist([bib_hot[i] for i in range(len(bib_hot)) if labels[i] == 0])
-# plt.axvline(x=0.5, color='r')
+plt.hist(false_signal)
+plt.axvline(x=0.5, color='r')
 plt.xlabel("Probability of BIB being signal")
 plt.ylabel("Number at that probability")
 plt.show()
 
-
 # %%
 plt.title("Prediction of signal from signal")
-plt.hist([bib_hot[i] for i in range(len(bib_hot)) if labels[i] == 1])
-# plt.axvline(x=0.5, color='r')
+plt.hist(true_signal)
+plt.axvline(x=0.5, color='r')
 plt.xlabel("Probability of signal being signal")
 plt.ylabel("Number at that probability")
 plt.show()
-
