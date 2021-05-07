@@ -112,11 +112,11 @@ train_ind, val_ind, test_ind = random_split(np.arange(len(data)), [len_train, le
 
 train_ind, val_ind, test_ind = list(train_ind), list(val_ind), list(test_ind)
 train_set = TransformableSubset(data, train_ind)
-print('train_data:', data.data[train_ind])
+print('train_data',data.data[train_ind])
 # fit the transform to the train_set, but transform all the data
 scaler = train_set.fit()
-print('mean:', scaler.mean_)
-print('scale:', scaler.scale_)
+print('mean',scaler.mean_)
+print('scale',scaler.scale_)
 transform = StandardTransform(scaler.mean_, scaler.scale_)
 print(f"Data before normalization: {data.data}")
 data.data = transform(data.data)
@@ -163,19 +163,22 @@ class Net(nn.Module):
         return x
 
     #backprop is automatically made by PyTorch
+
 # %%
+# Initialize the NN and training parameters
 classifier = Net()
 optimizer = optim.SGD(classifier.parameters(), lr=0.05)
 #create class weights corresponding to bib and signal
 #0 is bib, 1 is signal
 class_weights = torch.FloatTensor([len(data) / (2.0 * data.num_bib), len(data) / (2.0 * data.num_sig)])
 criterion = nn.CrossEntropyLoss(weight=class_weights)
-# %%
 
+# %%
+# Train the NN
 training_losses   = []
 validation_losses = []
 # training loop
-MAX_EPOCHS = 20
+MAX_EPOCHS = 50
 
 train_iter = iter(train_load)
 val_iter = iter(val_load)
@@ -212,7 +215,7 @@ for epoch in range(MAX_EPOCHS):
     print('Epoch {}: {} {}'.format(epoch, running_tloss, running_vloss))
 
 # %%
-#Plot training loss
+# Plot training loss
 plt.plot(training_losses  ,label='Training')
 plt.plot(validation_losses,label='Validation')
 plt.xlabel("Epoch")
@@ -224,37 +227,75 @@ plt.show()
 plt.clf()
 
 # %%
-false_signal = []
-true_signal = []
-signal_kept, total_signal, bib_kept, total_bib = 0, 0, 0, 0
+# Evaluate the NN on the test batch
+scor0 = []
+scor1 = []
+label = []
+torch.set_grad_enabled(False) # testing now
 for samples_batched, labels_batched in test_load:
-    output = F.softmax(classifier(samples_batched), dim=-1)
-    pred_classes = torch.argmax(output, dim=1)
-    true_labels = labels_batched
-    actual_signal = (true_labels == 1)
-    actual_bib = (true_labels == 0)
-    kept = (pred_classes == 1)
+    output = F.softmax(classifier(samples_batched), dim=-1).numpy()
 
-    false_signal.extend([output[i][1].item() for i in range(len(output)) if true_labels[i] == 0])
-    true_signal .extend([output[i][1].item() for i in range(len(output)) if true_labels[i] == 1])
+    scor0.extend(output[:,0])
+    scor1.extend(output[:,1])
+    label.extend(labels_batched)
 
-    total_signal += torch.count_nonzero(actual_signal).item()
-    signal_kept  += torch.count_nonzero(np.logical_and(actual_signal, kept)).item()
-    total_bib    += torch.count_nonzero(actual_bib   ).item()
-    bib_kept     += torch.count_nonzero(np.logical_and(actual_bib   , kept)).item()
+scor0=np.array(scor0)
+scor1=np.array(scor1)
+label=np.array(label)
 
-signal_eff = signal_kept / total_signal
-bib_eff = bib_kept / total_bib
-print(f"Cut Efficiency (Signal): {signal_eff}")
-print(f"Cut Efficiency (BIB): {bib_eff}")
 # %%
-# Plot the probability that the classifier thinks each test sample is signal.
-plt.hist(false_signal,label='BIB'   ,histtype='step',density=True)
-plt.hist(true_signal ,label='Signal',histtype='step',density=True)
-plt.axvline(x=0.5, color='r')
-plt.xlabel("Probability of Signal")
-plt.tight_layout()
+# Plot the NN classification outputs
+plt.hist(scor0[label == 0],label='BIB'   ,bins=20,range=(0,1),histtype='step',density=True)
+plt.hist(scor0[label == 1],label='Signal',bins=20,range=(0,1),histtype='step',density=True)
+plt.xlabel("Probability of BIB")
 plt.legend()
-plt.savefig('prob.png')
+plt.tight_layout()
+plt.savefig('probBIB.png')
 plt.show()
 plt.clf()
+
+plt.hist(scor1[label == 0],label='BIB'   ,bins=20,range=(0,1),histtype='step',density=True)
+plt.hist(scor1[label == 1],label='Signal',bins=20,range=(0,1),histtype='step',density=True)
+plt.xlabel("Probability of Signal")
+plt.legend()
+plt.tight_layout()
+plt.savefig('probSignal.png')
+plt.show()
+plt.clf()
+
+# %%
+# Make the ROC curve
+total = np.bincount(label)
+bib_eff = []
+sig_eff = []
+for cut in np.arange(0, 1, 0.01):
+    results=np.bincount(label[cut<scor1], minlength=2)
+    bib_eff.append(results[0] / total[0])
+    sig_eff.append(results[1] / total[1])
+
+print(bib_eff)
+print(sig_eff)
+
+#The minimum signal efficiency we'd allow
+sig_eff_min = 0.975
+for i, eff in enumerate(sig_eff):
+    if eff < sig_eff_min:
+        best_cut = i - 1
+        break
+sig_eff_cut = sig_eff[best_cut]
+bib_eff_cut = bib_eff[best_cut]
+prob_cutoff = best_cut * 0.01
+
+plt.plot(sig_eff, bib_eff)
+plt.xlabel('Signal Efficiency')
+plt.ylabel('BIB Efficiency')
+plt.axvline(x=sig_eff_cut, color='r')
+plt.axhline(y=bib_eff_cut, color='r')
+plt.tight_layout()
+plt.savefig('roc.png')
+plt.show()
+plt.clf()
+
+print(f"Cutoff at probability {prob_cutoff} yields {sig_eff_cut * 100}% Signal Efficiency \
+and {bib_eff_cut * 100}% BIB Efficiency")
+# %%
