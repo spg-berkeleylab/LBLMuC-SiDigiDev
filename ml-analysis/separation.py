@@ -236,7 +236,7 @@ def plot_loss(training_losses, validation_losses):
     plt.ylabel("Loss")
     plt.legend()
     plt.tight_layout()
-    if LAYER != -1:
+    if LAYER != -1 and LAYER != None:
         plt.savefig(f'loss-layer_{LAYER}.png')
     else:
         plt.savefig('loss.png')
@@ -324,7 +324,7 @@ def plot_best_cut(scor0, scor1, label, sig_eff_min=0.975):
     plt.axvline(x=sig_eff_cut, color='r')
     plt.axhline(y=bib_eff_cut, color='r')
     plt.tight_layout()
-    if LAYER != -1:
+    if LAYER != -1 and LAYER != None:
         plt.savefig(f'roc-layer_{LAYER}.png')
     else:
         plt.savefig('roc.png')
@@ -333,7 +333,7 @@ def plot_best_cut(scor0, scor1, label, sig_eff_min=0.975):
     print(f"Cutoff at probability {prob_cutoff} yields {sig_eff_cut * 100}% Signal Efficiency \
     and {bib_eff_cut * 100}% BIB Efficiency")
 
-    return prob_cutoff, sig_eff_cut, bib_eff_cut
+    return prob_cutoff
 
 def save_model(model, params, outputFilename=None, paramFilename=None):
     """
@@ -345,9 +345,10 @@ def save_model(model, params, outputFilename=None, paramFilename=None):
     if not paramFilename:
         paramFilename = "params.json"
 
-    torch.save(model.dict, outputFilename)
-
+    torch.save(model.state_dict(), outputFilename)
     print(f"Model successfully saved to: {outputFilename}.")
+    with open(paramFilename, 'w') as json_file:
+        json.dump(params, json_file)
     print(f"Params successfully saved to: {paramFilename}.")
 
 def main(argv):
@@ -359,7 +360,7 @@ def main(argv):
     else:
         noBibFilename, bibFilename, outputFilename, paramFilename = argv
 
-    layer_match = re.match(r".*layer_(%d+)", noBibFilename)
+    layer_match = re.match(r".*layer_(\d+).root", noBibFilename)
     if layer_match:
         LAYER = int(layer_match.group(1))
     else:
@@ -384,7 +385,11 @@ def main(argv):
     plot_test_outputs(scor0, scor1, label)
     prob_cutoff = plot_best_cut(scor0, scor1, label)
 
-    params = {"mean": scaler.mean_, "scale": scaler.scale_, "cutoff": prob_cutoff}
+    means = {f"mean_{i}" : scaler.mean_[i] for i in range(np.shape(scaler.mean_)[0])}
+    scales = {f"scale_{i}" : scaler.scale_[i] for i in range(np.shape(scaler.scale_)[0])}
+    params = {"cutoff": prob_cutoff}
+    params.update(means)
+    params.update(scales)
     save_model(classifier, params, outputFilename, paramFilename)
 
 if __name__ == "__main__":
