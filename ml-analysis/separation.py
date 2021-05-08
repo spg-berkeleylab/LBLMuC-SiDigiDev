@@ -1,4 +1,5 @@
 # %%
+import re
 import sys
 import json
 import numpy as np
@@ -14,6 +15,8 @@ from sklearn.preprocessing import StandardScaler
 #%matplotlib inline
 
 # %%
+LAYER = None
+
 class InputData(Dataset):
     """
     Creates a labeled dataset from the bibFilename and noBibFilename root files specified.
@@ -233,8 +236,10 @@ def plot_loss(training_losses, validation_losses):
     plt.ylabel("Loss")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('loss.png')
-    plt.show()
+    if LAYER != -1:
+        plt.savefig(f'loss-layer_{LAYER}.png')
+    else:
+        plt.savefig('loss.png')
     plt.clf()
 
 # %%
@@ -272,7 +277,6 @@ def plot_test_outputs(scor0, scor1, label):
     plt.legend()
     plt.tight_layout()
     plt.savefig('probBIB.png')
-    plt.show()
     plt.clf()
 
     plt.hist(scor1[label == 0],label='BIB'   ,bins=20,range=(0,1),histtype='step',density=True)
@@ -281,7 +285,6 @@ def plot_test_outputs(scor0, scor1, label):
     plt.legend()
     plt.tight_layout()
     plt.savefig('probSignal.png')
-    plt.show()
     plt.clf()
 
 def plot_best_cut(scor0, scor1, label, sig_eff_min=0.975):
@@ -321,8 +324,10 @@ def plot_best_cut(scor0, scor1, label, sig_eff_min=0.975):
     plt.axvline(x=sig_eff_cut, color='r')
     plt.axhline(y=bib_eff_cut, color='r')
     plt.tight_layout()
-    plt.savefig('roc.png')
-    plt.show()
+    if LAYER != -1:
+        plt.savefig(f'roc-layer_{LAYER}.png')
+    else:
+        plt.savefig('roc.png')
     plt.clf()
 
     print(f"Cutoff at probability {prob_cutoff} yields {sig_eff_cut * 100}% Signal Efficiency \
@@ -345,7 +350,6 @@ def save_model(model, params, outputFilename=None, paramFilename=None):
     print(f"Model successfully saved to: {outputFilename}.")
     print(f"Params successfully saved to: {paramFilename}.")
 
-
 def main(argv):
     if len(argv) == 0:
         noBibFilename, bibFilename, outputFilename, paramFilename = None, None, None, None
@@ -354,6 +358,12 @@ def main(argv):
         sys.exit(2)
     else:
         noBibFilename, bibFilename, outputFilename, paramFilename = argv
+
+    layer_match = re.match(r".*layer_(%d+)", noBibFilename)
+    if layer_match:
+        LAYER = int(layer_match.group(1))
+    else:
+        LAYER = -1
 
     data = InputData(bibFilename, noBibFilename)
     train_load, val_load, test_load, scaler = split_data(data)
