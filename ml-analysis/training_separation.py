@@ -199,10 +199,11 @@ def plot_test_outputs(scor0, scor1, label, layer=-1):
         plt.savefig('probSignal.png')
     plt.clf()
 
-def plot_best_cut(scor0, scor1, label, sig_eff_min=0.99, layer=-1):
+def plot_best_cut(scor0, scor1, label, prob_cutoff=None, sig_eff_min=None, layer=-1):
     """
     Args:
         scor0, scor1, label: See check_test.
+        cutoff: A probability cutoff we'd like to use (optional).
         sig_eff_min: The minimum signal efficiency we'd allow.
     Returns:
         prob_cutoff: The best cutoff probability above which we consider a hit as signal.
@@ -221,13 +222,17 @@ def plot_best_cut(scor0, scor1, label, sig_eff_min=0.99, layer=-1):
     print(bib_eff)
     print(sig_eff)
 
-    for i, eff in enumerate(sig_eff):
-        if eff < sig_eff_min:
-            best_cut = i - 1
-            break
+    if not prob_cutoff:
+        for i, eff in enumerate(sig_eff):
+            if eff < sig_eff_min:
+                best_cut = i - 1
+                break
+        prob_cutoff = best_cut * 0.01
+    else:
+        best_cut = round(prob_cutoff * 100)
+    
     sig_eff_cut = sig_eff[best_cut]
     bib_eff_cut = bib_eff[best_cut]
-    prob_cutoff = best_cut * 0.01
 
     #Plot ROC curve
     plt.plot(sig_eff, bib_eff)
@@ -296,7 +301,7 @@ def main():
 
     scor0, scor1, label = check_test(classifier, test_load)
     plot_test_outputs(scor0, scor1, label, layer=layer)
-    prob_cutoff = plot_best_cut(scor0, scor1, label, layer=layer)
+    prob_cutoff = plot_best_cut(scor0, scor1, label, sig_eff_min=0.99 , layer=layer)
 
     means = {f"mean_{i}" : scaler.mean_[i] for i in range(np.shape(scaler.mean_)[0])}
     scales = {f"scale_{i}" : scaler.scale_[i] for i in range(np.shape(scaler.scale_)[0])}

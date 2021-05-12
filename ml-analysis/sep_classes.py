@@ -8,7 +8,6 @@ import torch.nn.functional as F
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import Dataset
 
-
 class InputData(Dataset):
     """
     Creates a labeled dataset from the bibFilename and noBibFilename root files specified.
