@@ -1,18 +1,20 @@
-## CLI Script for NN separation of BIB
+## CLI Script for training NN separation of BIB
 ## By Rohit Agarwal
-#-------------------------------------
-## usage: py training-separation.py <nobibfile> <bibfile> <modelfile> <paramfile>
+## Trains a shallow NN to separate BIB and non-BIB
+##-------------------------------------
+## usage: training_separation.py <nobibfile> <bibfile> <modelfile> <paramfile>
 ## nobibfile - a ROOT file containing the features of a no-bib dataset
 ## bibfile - a ROOT file containing the features of a bib dataset
 ## modelfile - path to save the model. Should be a .pt file.
 ## paramfile - path to save the parameters. Should be a .json file.
+## Run with --help for more information.
 
 import re
 import sys
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-import uproot as ur
+import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,117 +22,11 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from torch.utils.data import random_split
 from sklearn.preprocessing import StandardScaler
+from sep_classes import *
 #%matplotlib inline
 
-LAYER = None
-
-class InputData(Dataset):
-    """
-    Creates a labeled dataset from the bibFilename and noBibFilename root files specified.
-    Optionally include a transform to be applied on the data.
-    """
-    def __init__(self, bibFilename=None, nobibFilename=None):
-        if not bibFilename:
-            bibFilename = "bib-features.root"
-        if not nobibFilename:
-            nobibFilename = "no-bib-features.root"
-        bibFile = ur.open(bibFilename)
-        bibTuple = bibFile["FeaturesTree"]
-        nobibFile = ur.open(nobibFilename)
-        nobibTuple = nobibFile["FeaturesTree"]
-        
-        bib_data    = InputData.createFeaturesMatrix(bibTuple)
-        signal_data = InputData.createFeaturesMatrix(nobibTuple)
-        self.data = torch.vstack([signal_data, bib_data])
-        self.num_sig = signal_data.shape[0]
-        self.num_bib = bib_data.shape[0]
-        self.labels = torch.hstack([torch.ones(self.num_sig), \
-                                    torch.zeros(self.num_bib)]).long()
-
-    def __len__(self):
-        return self.data.shape[0]
-        
-    def __getitem__(self, idx):
-        features, label = self.data[idx, :], self.labels[idx]
-        return (features, label)
-
-    @staticmethod
-    def createFeaturesMatrix(ttree):
-        """
-        Creates an n x 5 ndarray where n is the amount of clusters in the ttree.
-        The ndarray has data along its rows.
-        """
-        featureBranches = ['clszx', 'clszy', 'clch', 'clthe', 'clpor']
-        rows = ttree.arrays(expressions=featureBranches, library='np').values()
-        features_along_cols = torch.Tensor(list(rows))
-        features = torch.transpose(features_along_cols, 0, 1)
-        return features
-
-class TransformableSubset:
-    """
-    Takes a dataset and a set of indices and creates a subset.
-    Can also be transformed by a standardized transform.
-    """
-    def __init__(self, dataset, indices):
-        self.dataset = dataset
-        self.indices = indices
-
-    def __len__(self):
-        return len(self.indices)
-    
-    def __getitem__(self, idx):
-        return self.dataset[self.indices[idx]]
-
-    def fit(self):
-        """
-        Create and return a StandardScaler fitting the data in this subset.
-        """
-        scaler = StandardScaler()
-        data_tensor = torch.Tensor(len(self.indices), self.dataset[0][0].shape[-1])
-        for (row, idx) in enumerate(self.indices):
-            data_tensor[row] = self.dataset[idx][0]
-        scaler.fit(data_tensor)
-        return scaler
-
-class StandardTransform(object):
-    """
-    Takes in a mean and stdev and then standardizing the data which those stats come from,
-    normalizing it to have 0 mean and unit variance.
-
-    Args:
-        mean (sequence): sequence of means of each feature.
-        scale (sequence): sequence of stddevs of each feature.
-    """
-    def __init__(self, mean, scale):
-        self.mean = torch.Tensor(mean)
-        self.scale = torch.Tensor(scale)
-
-    def __call__(self, sample):
-        return (sample - self.mean) / self.scale
-
-class Net(nn.Module):
-    """
-    Neural network to compute classification for BIB vs signal. 
-    4-layer neural network
-    5 - 5 - 3 - 2
-    """
-
-    def __init__(self):
-        super(Net, self).__init__()
-        self.fc1 = nn.Linear(5, 5)
-        self.fc2 = nn.Linear(5, 3)
-        self.fc3 = nn.Linear(3, 2)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x) # CrossEntropyLoss automatically applies softmax
-        return x
-
-    #backprop is automatically made by PyTorch
-
 # %%
-def split_data(data, training_ratio=0.5, val_ratio=0.25):
+def split_data(data, training_ratio=0.5, val_ratio=0.25, layer=-1):
     """
     Splits the data into training, test, and validation.
     Args:
@@ -169,7 +65,7 @@ def split_data(data, training_ratio=0.5, val_ratio=0.25):
     test_load  = DataLoader(data, batch_size=256, sampler=test_sampler )
     return train_load, val_load, test_load, scaler
 
-def plot_all_features(data):
+def plot_all_features(data, layer=-1):
     # Plot all features
     for idx in range(data.data.shape[1]):
         plt.hist(data.data[data.labels==0,idx].numpy(),bins=100,label='1',density=True,histtype='step')
@@ -177,7 +73,10 @@ def plot_all_features(data):
         plt.xlabel(f'Normalized Feature {idx}')
         plt.legend()
         plt.tight_layout()
-        plt.savefig(f'feature_{idx}.png')
+        if layer != -1 and layer != None:
+            plt.savefig(f'feature_{idx}-layer_{layer}.png')
+        else:
+            plt.savefig(f'feature_{idx}.png')
         plt.clf()
 
 # %%
@@ -236,15 +135,15 @@ def train_nn(classifier, optimizer, criterion, train_load, val_load, MAX_EPOCHS=
 
     return training_losses, validation_losses
 
-def plot_loss(training_losses, validation_losses):
+def plot_loss(training_losses, validation_losses, layer=-1):
     plt.plot(training_losses  ,label='Training')
     plt.plot(validation_losses,label='Validation')
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
     plt.tight_layout()
-    if LAYER != -1 and LAYER != None:
-        plt.savefig(f'loss-layer_{LAYER}.png')
+    if layer != -1 and layer != None:
+        plt.savefig(f'loss-layer_{layer}.png')
     else:
         plt.savefig('loss.png')
     plt.clf()
@@ -276,14 +175,17 @@ def check_test(classifier, test_load):
     return scor0, scor1, label
 
 # %%
-def plot_test_outputs(scor0, scor1, label):
+def plot_test_outputs(scor0, scor1, label, layer=-1):
     # Plot the NN classification outputs
     plt.hist(scor0[label == 0],label='BIB'   ,bins=20,range=(0,1),histtype='step',density=True)
     plt.hist(scor0[label == 1],label='Signal',bins=20,range=(0,1),histtype='step',density=True)
     plt.xlabel("Probability of BIB")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('probBIB.png')
+    if layer != -1 and layer != None:
+        plt.savefig(f'probBIB-layer_{layer}.png')
+    else:
+        plt.savefig('probBIB.png')
     plt.clf()
 
     plt.hist(scor1[label == 0],label='BIB'   ,bins=20,range=(0,1),histtype='step',density=True)
@@ -291,10 +193,13 @@ def plot_test_outputs(scor0, scor1, label):
     plt.xlabel("Probability of Signal")
     plt.legend()
     plt.tight_layout()
-    plt.savefig('probSignal.png')
+    if layer != -1 and layer != None:
+        plt.savefig(f'probSignal-layer_{layer}.png')
+    else:
+        plt.savefig('probSignal.png')
     plt.clf()
 
-def plot_best_cut(scor0, scor1, label, sig_eff_min=0.975):
+def plot_best_cut(scor0, scor1, label, sig_eff_min=0.99, layer=-1):
     """
     Args:
         scor0, scor1, label: See check_test.
@@ -331,8 +236,8 @@ def plot_best_cut(scor0, scor1, label, sig_eff_min=0.975):
     plt.axvline(x=sig_eff_cut, color='r')
     plt.axhline(y=bib_eff_cut, color='r')
     plt.tight_layout()
-    if LAYER != -1 and LAYER != None:
-        plt.savefig(f'roc-layer_{LAYER}.png')
+    if layer != -1 and layer != None:
+        plt.savefig(f'roc-layer_{layer}.png')
     else:
         plt.savefig('roc.png')
     plt.clf()
@@ -358,24 +263,25 @@ def save_model(model, params, outputFilename=None, paramFilename=None):
         json.dump(params, json_file)
     print(f"Params successfully saved to: {paramFilename}.")
 
-def main(argv):
-    if len(argv) == 0:
-        noBibFilename, bibFilename, outputFilename, paramFilename = None, None, None, None
-    elif len(argv) < len(["nobibfile, bibfile, outputfile, paramfile"]):
-        print("usage: separation.py <nobibfile> <bibfile> <modelfile> <paramfile>")
-        sys.exit(2)
-    else:
-        noBibFilename, bibFilename, outputFilename, paramFilename = argv
+def main():
+    parser = argparse.ArgumentParser(description="CLI Script for training NN separation of BIB")
+    parser.add_argument('noBibFilename', nargs='?', help="A ROOT file containing the features of a no-bib dataset.")
+    parser.add_argument('bibFilename', nargs='?', help="A ROOT file containing the features of a bib dataset.")
+    parser.add_argument('outputFilename', nargs='?', help="Path to save the model. Should be a .pt file.")
+    parser.add_argument('paramFilename', nargs='?', help="Path to save the parameters. Should be a .json file.")
+    noBibFilename, bibFilename, outputFilename, paramFilename = vars(parser.parse_args()).values()
 
-    layer_match = re.match(r".*layer_(\d+).root", noBibFilename)
-    if layer_match:
-        LAYER = int(layer_match.group(1))
-    else:
-        LAYER = -1
+    layer = None
+    if noBibFilename:
+        layer_match = re.match(r".*layer_(\d+).root", noBibFilename)
+        if layer_match:
+            layer = int(layer_match.group(1))
+        else:
+            layer = -1
 
     data = InputData(bibFilename, noBibFilename)
     train_load, val_load, test_load, scaler = split_data(data)
-    plot_all_features(data)
+    plot_all_features(data, layer=layer)
 
     # Initialize the NN and training parameters
     classifier = Net()
@@ -386,11 +292,11 @@ def main(argv):
     criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     training_losses, validation_losses = train_nn(classifier, optimizer, criterion, train_load, val_load)
-    plot_loss(training_losses, validation_losses)
+    plot_loss(training_losses, validation_losses, layer=layer)
 
     scor0, scor1, label = check_test(classifier, test_load)
-    plot_test_outputs(scor0, scor1, label)
-    prob_cutoff = plot_best_cut(scor0, scor1, label)
+    plot_test_outputs(scor0, scor1, label, layer=layer)
+    prob_cutoff = plot_best_cut(scor0, scor1, label, layer=layer)
 
     means = {f"mean_{i}" : scaler.mean_[i] for i in range(np.shape(scaler.mean_)[0])}
     scales = {f"scale_{i}" : scaler.scale_[i] for i in range(np.shape(scaler.scale_)[0])}
@@ -400,4 +306,4 @@ def main(argv):
     save_model(classifier, params, outputFilename, paramFilename)
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
