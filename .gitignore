@@ -9,3 +9,6 @@ log.*
 *.slcio
 SiDigiDev.code-workspace
 *.root
+*.pt
+*.json
+__pycache__
