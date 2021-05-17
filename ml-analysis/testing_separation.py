@@ -44,7 +44,7 @@ def main():
     filenames = ["noBibFilename", "bibFilename", "modelFilename", "paramFilename"]
     args = vars(parser.parse_args())
     noBibFilename, bibFilename, modelFilename, paramFilename = tuple(args[name][0] for name in filenames)
-    sig_eff_min = float(args["sig_eff_min"])
+    sig_eff_min = float(args["sig_eff_min"]) if args["sig_eff_min"] else None
 
     layer = None
     if noBibFilename:
