@@ -34,9 +34,16 @@ where PWD is the path to your working directory. If this is your first time runn
 Alternatively, use VSCode config files detailed in the VSCode setup section.
 
 ### Cloning repository
-Just be careful that submodules are also cloned e.g.
+Just be careful that submodules are also cloned by using `--recursive`
+
+To clone from gitlab
 ```bash
 git clone --recursive https://gitlab.cern.ch/berkeleylab/MuonCollider/LBLMuC-SiDigiDev.git
+```
+
+To clone from github
+```bash
+git clone --recursive https://github.com/spg-berkeleylab/LBLMuC-SiDigiDev.git
 ```
 
 Note that the primary branch is called `main`.
@@ -85,8 +92,3 @@ Marlin ${MYWORKSPACE}/config/reco_steer.xml
 ```
 
 use instead `reco_steer_BIB.xml` for including BIB.
-
-### Ntuple production
-```bash
-Marlin ${MYWORKSPACE}/config/lctuple_tracker.xml
-```
