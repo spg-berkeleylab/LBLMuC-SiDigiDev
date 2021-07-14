@@ -24,6 +24,7 @@ for f in files:
     h.append(TH1F("clus_charge", "Cluster charge;charge (e^{-});a.u.", 50, 0.0, 20000.))
     h.append(TH1F("clus_charge_raw", "Cluster charge;charge (e^{-});a.u.", 1000, 0.0, 50000.))
     h.append(TH1F("hit_charge", "Hit Charge;charge (e^{-});a.u.", 100, 0.0, 10000.))
+    h.append(TH1F("hit_charge_raw", "Hit Charge;charge (e^{-});a.u.", 500, 0.0, 10000.))
     h.append(TH1F("clus_posres_x", "Cluster position X (reco - true); #Delta x (#mu m);a.u.", 100, -50., 50.))
     h.append(TH1F("clus_posres_y", "Cluster position Y (reco - true); #Delta y (#mu m);a.u.", 100, -50., 50.))
     h.append(TH1F("clus_size_x", "Cluster size in X direction; Size (pixels); a.u.", 50, -0.5, 49.5))
@@ -52,6 +53,7 @@ for f in files:
 
             for hit in range(t.thcidx[clus], t.thcidx[clus] + t.thclen[clus]):
                 ROOT.gDirectory.Get("hit_charge").Fill(t.tcedp[hit])
+                ROOT.gDirectory.Get("hit_charge_raw").Fill(t.tcedp[hit])
                 minX = min(minX, t.tcrp0[hit])
                 maxX = max(maxX, t.tcrp0[hit])
                 minY = min(minY, t.tcrp1[hit])
@@ -69,7 +71,7 @@ for f in files:
 
     # study for threshold smear only, no charge digi
     if save_name.find('ThresholdSmear') > -1:
-        h_charge = ROOT.gDirectory.Get("clus_charge_raw")
+        h_charge = ROOT.gDirectory.Get("hit_charge_raw")
         lastBin = h_charge.GetSize()-1
         totalIntegral = h_charge.Integral(0, 15000)
         lastBin = h_charge.FindBin(15000)
