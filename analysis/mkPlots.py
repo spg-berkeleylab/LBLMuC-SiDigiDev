@@ -3,13 +3,13 @@ import glob, ROOT, sys, math
 from ROOT import TChain, TH1F, TH2F, TFile
 from ROOT import TStyle,TGraph,TCanvas,TGaxis,TLegend,TGraphAsymmErrors,TPad,TLine
 from ROOT import gROOT,gDirectory, gStyle
+import numpy as np
+import argparse
 
 ROOT.gROOT.SetBatch(1)
 ROOT.TH1.SetDefaultSumw2(1)
 ROOT.gStyle.SetOptStat(0)
 
-files = glob.glob('analysis*.root')
-print(files)
 
 c1 = TCanvas("c1","c1",0,0,700,600)
 axis_size = 0.035
@@ -18,7 +18,7 @@ linewidth = 3
 marker = 1.2
 size = 12
 
-signal_colors=[ROOT.kRed, ROOT.kBlue, ROOT.kOrange, ROOT.kMagenta, ROOT.kGreen+3, ROOT.kCyan, ROOT.kGreen, ROOT.kYellow, ROOT.kBlack]
+signal_colors=[ROOT.kRed, ROOT.kBlue, ROOT.kOrange-3, ROOT.kMagenta, ROOT.kGreen+3, ROOT.kCyan, ROOT.kGreen, ROOT.kYellow, ROOT.kBlack]
 
 def plot_1var(sig,legend, save):
 # sig = array of TH1F histograms
@@ -37,16 +37,19 @@ def plot_1var(sig,legend, save):
 
     max_val = 0
     for i in range(0,len(sig)):
-        sig[i].Draw('C sames')
+        sig[i].Draw('histsames')
         sig[i].SetLineColor(signal_colors[i])
         sig[i].SetLineWidth(linewidth)
-        
+
         if save.find('pos')>-1: leg.AddEntry(sig[i],legend[i]+', #sigma = %.2f'%(sig[i].GetRMS()) , 'l')
         else: leg.AddEntry(sig[i],legend[i], 'l')
         sig[i].GetXaxis().SetTitleSize(axis_size)
         sig[i].GetYaxis().SetTitleSize(axis_size)
         sig[i].GetYaxis().SetTitleOffset(title_offset)
+        if max_val < sig[i].GetMaximum(): max_val =  sig[i].GetMaximum()
+    sig[0].SetMaximum(max_val*1.5)
 
+    #if save.find('hit_charge') > -1 : c1.SetLogy()
     leg.Draw()
     c1.Update()
 
@@ -56,24 +59,50 @@ def plot_1var(sig,legend, save):
     
     c1.Print(save+'.pdf')
 
-histNames = ["clus_charge", "clus_posres_x", "clus_posres_y"]
-histNames = sys.argv[1]
-h = sys.argv[1]
-if True:
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-f",
+        "--files",
+        default="",
+        help="Set the input configuration file",
+    )
+    parser.add_argument(
+        "-l",
+        "--legend",
+        default ="",
+        help='legend',
+    )
+    parser.add_argument(
+        "-s",
+        "--save",
+        default ="",
+        help='Name for saving the plot',
+    )
+    parser.add_argument(
+        "-v",
+        "--histograms",
+        default="",
+        help="Name of histogram to plot",
+    )
+    
+    args = parser.parse_args()
+
+    
+    files = args.files.split(',')
+    h = args.histograms
+    legend= args.legend.split(',')
+    save = args.save
+
+    print(h)
+
     h_plt = []
     leg = []
     for f in files:
-        if f.find('Poisson') > -1: continue
-        if not(f.find('_4')> -1 or f.find('Threshold') >-1):continue
-        l = f.split('.root')[0].split('analysis_')[1]
-        if l.find('Threshold') > -1: leg.append('threshold smearing only')
-        elif l.find('uniform') > -1: leg.append('uniform binning')
-        elif l.find('variable') > -1 : leg.append('variable binning, bit = '+f.split('.root')[0].split('variableBin_')[1])
-        elif l.find('binSplit') > -1: leg.append('Splitting bins, bit ='+f.split('.root')[0].split('binSplit_')[1])
-        else: leg.append(l)
-        tf = ROOT.TFile.Open(f)
+        tf = ROOT.TFile.Open('analysis_'+f+'.root')
         tmp = TH1F()
         tmp = tf.Get(h)
         tmp.SetDirectory(0)
         h_plt.append(tmp)
-    plot_1var(h_plt,leg, h+'_chargeComp')
+    plot_1var(h_plt,legend, h+'_'+save)

@@ -124,7 +124,7 @@
       muonGun_sim_MuColl_v1.slcio
     </parameter>
     <!-- Limit the number of processed records (run+evt): -->
-    <parameter name="MaxRecordNumber"> 5 </parameter>
+    <parameter name="MaxRecordNumber"> 6 </parameter>
     <parameter name="SkipNEvents"> 0 </parameter>
     <parameter name="SupressCheck"> false </parameter>
     <parameter name="Verbosity" options="DEBUG0-9,MESSAGE0-9,WARNING0-9,ERROR0-9,SILENT">WARNING </parameter>
@@ -405,7 +405,15 @@
     <!-- Segment Length in mm -->
     <parameter name="SegmentLength" type="float"> 0.005 </parameter>
     <!-- Apply Poisson smearing of electrons collected on pixels -->
-    <parameter name="PoissonSmearing" type="int"> 1 </parameter>
+    <parameter name="PoissonSmearing" type="int"> 0 </parameter>
+    <!-- Sigma of Gaussian used in threshold smearing, in electrons -->
+    <parameter name="ThresholdSmearSigma" type="int"> 25 </parameter>
+    <!-- Discretize the charge collected on pixels -->
+    <parameter name="ChargeDiscretize" type="int"> 1 </parameter>
+    <!-- Number of bits used to store charge information -->
+    <parameter name="ChargeDiscretizeNumBits" type="int"> 4 </parameter>
+    <!-- Binning scheme used for charge discretization -->
+    <parameter name="ChargeDiscretizeBinning" type="int"> 1 </parameter>
     <!-- Apply Electronic Effects and set noise -->
     <parameter name="ElectronicEffects" type="int"> 1 </parameter>
     <!-- Electronic noise. 100e- is quite conservative and I'd expect better performance -->
