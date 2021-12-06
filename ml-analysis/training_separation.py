@@ -9,6 +9,7 @@
 ## paramfile - path to save the parameters. Should be a .json file.
 ## Run with --help for more information.
 
+import os
 import re
 import sys
 import json
@@ -74,9 +75,9 @@ def plot_all_features(data, layer=-1):
         plt.legend()
         plt.tight_layout()
         if layer != -1 and layer != None:
-            plt.savefig(f'feature_{idx}-layer_{layer}.png')
+            plt.savefig(os.path.join('images', 'data', f'feature_{idx}-layer_{layer}.png'))
         else:
-            plt.savefig(f'feature_{idx}.png')
+            plt.savefig(os.path.join('images', 'data', f'feature_{idx}.png'))
         plt.clf()
 
 # %%
@@ -143,9 +144,9 @@ def plot_loss(training_losses, validation_losses, layer=-1):
     plt.legend()
     plt.tight_layout()
     if layer != -1 and layer != None:
-        plt.savefig(f'loss-layer_{layer}.png')
+        plt.savefig(os.path.join('images', 'training', f'loss-layer_{layer}.png'))
     else:
-        plt.savefig('loss.png')
+        plt.savefig(os.path.join('images', 'training', 'loss.png'))
     plt.clf()
 
 # %%
@@ -183,9 +184,9 @@ def plot_test_outputs(scor0, scor1, label, layer=-1):
     plt.legend()
     plt.tight_layout()
     if layer != -1 and layer != None:
-        plt.savefig(f'probBIB-layer_{layer}.png')
+        plt.savefig(os.path.join('images', 'testing', f'probBIB-layer_{layer}.png'))
     else:
-        plt.savefig('probBIB.png')
+        plt.savefig(os.path.join('images', 'testing', 'probBIB.png'))
     plt.clf()
 
     plt.hist(scor1[label == 0],label='BIB'   ,bins=20,range=(0,1),histtype='step',density=True)
@@ -194,9 +195,9 @@ def plot_test_outputs(scor0, scor1, label, layer=-1):
     plt.legend()
     plt.tight_layout()
     if layer != -1 and layer != None:
-        plt.savefig(f'probSignal-layer_{layer}.png')
+        plt.savefig(os.path.join('images', 'testing', f'probSignal-layer_{layer}.png'))
     else:
-        plt.savefig('probSignal.png')
+        plt.savefig(os.path.join('images', 'testing', 'probSignal.png'))
     plt.clf()
 
 def plot_best_cut(scor0, scor1, label, prob_cutoff=None, sig_eff_min=None, layer=-1):
@@ -242,9 +243,9 @@ def plot_best_cut(scor0, scor1, label, prob_cutoff=None, sig_eff_min=None, layer
     plt.axhline(y=bib_eff_cut, color='r')
     plt.tight_layout()
     if layer != -1 and layer != None:
-        plt.savefig(f'roc-layer_{layer}.png')
+        plt.savefig(os.path.join('images', 'testing', f'roc-layer_{layer}.png'))
     else:
-        plt.savefig('roc.png')
+        plt.savefig(os.path.join('images', 'testing', 'roc.png'))
     plt.clf()
 
     print(f"Cutoff at probability {prob_cutoff} yields {sig_eff_cut * 100}% Signal Efficiency \

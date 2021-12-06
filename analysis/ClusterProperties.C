@@ -19,15 +19,18 @@ std::map<std::string, TH1*> h;
 void initHistograms();
 
 const float electrons_per_keV = 1. / 0.00362;
-const std::vector<float> theta_m90_ranges = {0.0, 30.0, 50.0, 70.0}; // |theta - pi/2| (deg)
+const std::vector<float> theta_m90_ranges = { 0.0, 35.0, 50.0, 60.0}; // |theta - pi/2| (deg)
 const std::vector<std::vector<float>> theta_m90_sizeCut       = { {2, 3, 6, 999},
                                                                   {2, 3, 4, 999},
                                                                   {2, 3, 3, 999},
                                                                   {3, 3, 4, 999} }; //[layer][theta_range], last bin is overflow
-const std::vector<std::vector<float>> theta_m90_sizeCut_tight = { {2, 3, 5, 5},
-                                                                  {2, 3, 4, 5},
+const std::vector<std::vector<float>> theta_m90_sizeCut_tight = { {2, 3, 4, 5},
+                                                                  {2, 3, 4, 4},
                                                                   {2, 3, 3, 3},
                                                                   {2, 2, 2, 3}}; //[layer][theta_range], last bin is overflow
+const std::vector<float> sizeCut_X = {3, 3};
+const std::vector<float> sizeCut_Y = {5, 3};
+const std::vector<float> chargeCut = {30080, 26600};
 
 //Input branches
 void initBranches(TTree *t);
@@ -66,9 +69,9 @@ Float_t clthe;
 Float_t clpor;
 
 //Feature Layer selects the nth pair of layers for feature analysis.
-void ClusterProperties(std::string inputFile="ntuple_tracker.root", int featureLayer=0)
+void ClusterProperties(std::string inputFile="ntuple_tracker.root", int featureLayer=0, bool produceImage=false)
 {
-
+  bool gotImage = !produceImage;
   TFile *fin = TFile::Open(inputFile.c_str());
   if (!fin) {
     std::cout << "Error opening file: " << inputFile << std::endl;
@@ -93,6 +96,7 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root", int featureL
 
   float worst_cut = FLT_MAX;
   float worst_cut_loose = FLT_MAX;
+  int imaging_idx = 1337;
   size_t numClusters = 0;
 
   Long64_t nentries = tin->GetEntries();
@@ -134,23 +138,44 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root", int featureL
           if (tcrp0[ih] > maxX) maxX = tcrp0[ih];
           if (tcrp1[ih] > maxY) maxY = tcrp1[ih];          
           if (tcrp0[ih] < minX) minX = tcrp0[ih];
-          if (tcrp1[ih] < minY) minY = tcrp1[ih];          
+          if (tcrp1[ih] < minY) minY = tcrp1[ih];
         }
 
         //cluster shape
         int size_x = std::abs(maxX - minX) + 1;
         int size_y = std::abs(maxY - minY) + 1;
+        // Getting a greyscale image
+        if (size_y > 1 && !gotImage) {
+          std::vector<std::vector<float> > grid(size_x, std::vector<float>(size_y));
+          for (size_t ih = thcidx[ic]; ih < thcidx[ic] + thclen[ic]; ++ih) {
+            int x = tcrp0[ih] - minX; int y = tcrp1[ih] - minY;
+            grid[x][y] = tcedp[ih];
+          }
+          cout << "[";
+          for (int x = 0; x < size_x; ++x) {
+            cout << "[";
+            for (int y = 0; y < size_y; ++y) {
+              cout << grid[x][y] << ",";
+            }
+            cout << "],";
+          }
+          cout << "]";
+          gotImage = true;
+        }
+
         float theta = std::atan(stmoy[g4_idx] / stmoz[g4_idx]);
         float clus_theta = std::atan(thpoy[ic]/thpoz[ic]);
         //std::cout << "Theta MC = " << theta << ", Theta Cluster = " << clus_theta << ", minX= " << minX << ", maxX= " << maxX << ", minY=" << minY << ", maxY=" << maxY << std::endl;       
         if (clus_theta < 0) clus_theta = TMath::Pi() + clus_theta; // put it into [0, pi[ range
         if (theta < 0) theta = TMath::Pi() + theta; // put it into [0, pi[ range
         float theta_m90_deg = clus_theta / TMath::Pi() * 180.0 - 90.0; // theta - 90.0 (deg)
-        h["clus_size_x"]->Fill(size_x);        
-        h["clus_size_y"]->Fill(size_y);
         h["clus_size_y_theta"]->Fill(clus_theta / TMath::Pi() * 180.0, size_y);
         int layerIdx = std::floor(layer / 2);
         int thetaIdx = -1;
+        if (layerIdx <= 1) {
+          h["clus_size_x"]->Fill(size_x);        
+          h["clus_size_y"]->Fill(size_y);
+        }
         for (int jj=theta_m90_ranges.size()-1; jj >= 0; --jj)
           if (std::abs(theta_m90_deg) >= theta_m90_ranges[jj]) {
             thetaIdx = jj;
@@ -190,9 +215,13 @@ void ClusterProperties(std::string inputFile="ntuple_tracker.root", int featureL
           numClusters_size_cut_event++;
           h["clus_kept_xy"]->Fill(thpox[ic], thpoy[ic]);
           h["clus_kept_rz"]->Fill(thpoz[ic], thpor);
+          h["clus_kept_sizey"]->Fill(size_y);
+          h["clus_kept_sizex"]->Fill(size_x);
         } else {
           h["clus_lost_xy"]->Fill(thpox[ic], thpoy[ic]);
           h["clus_lost_rz"]->Fill(thpoz[ic], thpor);
+          h["clus_lost_sizey"]->Fill(size_y);
+          h["clus_lost_sizex"]->Fill(size_x);
         }
         if (size_y <= max_sizeY_loose) {
           h["clus_kept_xy_loose"]->Fill(thpox[ic], thpoy[ic]);
@@ -320,10 +349,18 @@ void initHistograms()
                               320, -160.0, 160.0, 320, -160.0, 160.0);
   h["clus_kept_rz"] = new TH2F("clus_kept_rz", "Reco cluster position of kept (tight); Reco Z (mm); Reco R (mm)", 
                               160, -80.0, 80.0, 110, 0.0, 110.);
+  h["clus_kept_sizey"] = new TH1F("clus_kept_sizey", "Y Size of Clusters Kept (By - Eye); Y Size of cluster (pixels);", 
+                              100, -0.5, 49.5 );
+  h["clus_kept_sizex"] = new TH1F("clus_kept", "X Size of Clusters Kept (By - Eye); X Size of cluster (pixels);", 
+                              100, -0.5, 49.5 );                           
   h["clus_lost_xy"] = new TH2F("clus_lost_xy", "Reco cluster position of lost (tight); Reco X (mm); Reco Y (mm)", 
                               320, -160.0, 160.0, 320, -160.0, 160.0);
   h["clus_lost_rz"] = new TH2F("clus_lost_rz", "Reco cluster position of lost (tight); Reco Z (mm); Reco R (mm)", 
                               160, -80.0, 80.0, 110, 0.0, 110.);
+  h["clus_lost_sizey"] = new TH1F("clus_lost_sizey", "Y Size of Clusters Lost (By - Eye); Y Size of cluster (pixels);", 
+                              100, -0.5, 49.5 );
+  h["clus_lost_sizex"] = new TH1F("clus_lost_sizex", "X Size of Clusters Lost (By - Eye); Y Size of cluster (pixels);", 
+                              100, -0.5, 49.5 );
   h["clus_kept_xy_loose"] = new TH2F("clus_kept_xy_loose", "Reco cluster position X-Y of kept (loose); Reco X (mm); Reco Y (mm)", 
                               320, -160.0, 160.0, 320, -160.0, 160.0);
   h["clus_kept_rz_loose"] = new TH2F("clus_kept_rz_loose", "Reco cluster position R-Z of kept (loose); Reco Z (mm); Reco R (mm);", 

@@ -7,9 +7,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 #%matplotlib inline
 # %%
-nobibFile = ur.open("./runs/10GeV-no-bib/ntuple_tracker.root")
+nobibFile = ur.open("../selfRuns/011-pgun-10GeV-bib/ntuple_tracker.root")
 nobibTuple = nobibFile["MyLCTuple"]
-bibFile = ur.open("./runs/10GeV-bib/ntuple_tracker.root")
+bibFile = ur.open("../selfRuns/012-rohaga-10GeV-100k/ntuple_tracker.root")
 bibTuple = bibFile["MyLCTuple"]
 # %%
 def createFeaturesMatrix(ttree):
@@ -76,7 +76,7 @@ ax2.set_xlabel("Theta of cluster")
 plt.suptitle("Y cluster size vs Theta (Left BIB, Right single mu)")
 plt.tight_layout()
 # %%
-training_ratio = 0.6
+training_ratio = 0.01
 #Everything in [0, split_mu) used for training
 #This can also serve as an indicator between a point being bib or not.
 split_mu = round(training_ratio * np.shape(single_mu_data)[0])
@@ -87,23 +87,25 @@ bib_training = bib_data[:split_bib,:]
 training_data = np.vstack([single_training, bib_training])
 training_data = StandardScaler().fit_transform(training_data)
 # %%
-PCA_data = PCA(n_components=2).fit_transform(training_data)
+PCA_data = PCA(n_components=3).fit_transform(training_data)
 # %%
 single_mu_pca = PCA_data[:split_mu, :]
 bib_pca = PCA_data[split_mu:, :]
-plt.figure(figsize = (10, 5))
-fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10,5))
+fig = plt.figure(figsize = (10, 5))
+ax1 = fig.add_subplot(1, 2, 1)#,projection='3d')
+ax2 = fig.add_subplot(1, 2, 2)#,projection='3d')
+#fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10,5), projection='3d')
 ax1.set(xlim = (-1, 2))
 ax2.set(xlim = (-1, 2))
 plt.suptitle("Clusters in PCA basis")
-ax1.scatter(single_mu_pca[:,0], single_mu_pca[:,1], s=1, c=['red'])
+ax1.scatter(single_mu_pca[:,0], single_mu_pca[:,2], s=1, c=['red'])
 ax1.legend(['Single Mu'])
-ax2.scatter(bib_pca[:, 0], bib_pca[:, 1], s=1, c=['green'])
+ax2.scatter(bib_pca[:, 0], bib_pca[:, 2], s=1, c=['green'])
 ax2.legend(['BIB'])
 ax1.set_xlabel("Projection onto 1st P.C.")
 ax2.set_xlabel("Projection onto 1st P.C.")
-ax1.set_ylabel("Projection onto 2nd P.C.")
-ax2.set_ylabel("Projection onto 2nd P.C.")
+ax1.set_ylabel("Projection onto 3rd P.C.")
+ax2.set_ylabel("Projection onto 3rd P.C.")
 plt.tight_layout()
 # %%
 CUT = 0.0
