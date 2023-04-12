@@ -393,10 +393,16 @@
     <parameter name="PixelSizeY" type="float"> 0.025 </parameter>
     <!-- FE threshold (in electrons) and electronic effects -->
     <parameter name="Threshold" type="float"> 500 </parameter>
+    <parameter name="ChargeMaximum" type="float"> 15000. </parameter>
     <parameter name="ThresholdSmearSigma" type="int"> 25 </parameter>
-    <parameter name="ChargeDiscretize" type="int"> 1 </parameter>
-    <parameter name="ChargeDiscretizeNumBits" type="int"> 4 </parameter>
-    <parameter name="ChargeDiscretizeBinning" type="int"> 1 </parameter>
+    <parameter name="DigitizeCharge" type="int"> 1 </parameter>
+    <parameter name="ChargeDigitizeNumBits" type="int"> 4 </parameter>
+    <parameter name="ChargeDigitizeBinning" type="int"> 1 </parameter>
+    <parameter name="DigitizeTime" type="int"> 1 </parameter>
+    <parameter name="TimeDigitizeNumBits" type="int"> 10 </parameter>
+    <parameter name="TimeDigitizeBinning" type="int"> 0 </parameter>
+    <parameter name="TimeMaximum" type="float"> 10.0 </parameter>
+    <parameter name="TimeSmearingSigma" type="float"> 0.05 </parameter>
     <parameter name="ElectronicEffects" type="int"> 1 </parameter>
     <parameter name="ElectronicEffects" type="int"> 1 </parameter>
     <parameter name="ElectronicNoise" type="float"> 80 </parameter>
